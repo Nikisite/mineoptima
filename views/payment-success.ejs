@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>
+    <%= title %>
+  </title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f7f9fc;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+
+    .container {
+      background: white;
+      padding: 2.5rem 3rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      max-width: 460px;
+      width: 100%;
+      box-sizing: border-box;
+      transition: padding 0.3s ease;
+    }
+
+    h1 {
+      margin-bottom: 1rem;
+      font-weight: 700;
+      color: #4BB543;
+      /* зелёный */
+      font-size: 2.5rem;
+      line-height: 1.1;
+    }
+
+    p {
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+      color: #555;
+      line-height: 1.4;
+    }
+
+    a.btn {
+      text-decoration: none;
+      display: inline-block;
+      padding: 0.75rem 1.75rem;
+      background: #4BB543;
+      color: white;
+      font-weight: 600;
+      border-radius: 6px;
+      transition: background-color 0.25s ease;
+      user-select: none;
+    }
+
+    a.btn:hover {
+      background: #3a8e2c;
+    }
+
+    /* Адаптивность */
+    @media (max-width: 400px) {
+      .container {
+        max-width: 100%;
+        padding: 2rem 1.5rem;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      p {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      a.btn {
+        width: 100%;
+        padding: 0.85rem 0;
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Оплата успешна!</h1>
+    <p>Спасибо за вашу покупку.</p>
+    <a href="/" class="btn">На главную</a>
+    <p style="font-size: 1rem; margin-top: 2.5rem; color: #666;">
+      Если у вас есть вопросы, пожалуйста, свяжитесь с нашей поддержкой.
+    </p>
+  </div>
+</body>
+
+</html>

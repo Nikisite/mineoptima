@@ -1,0 +1,38 @@
+[
+  {
+    "id": "1",
+    "name": "Основной сервер",
+    "ip": "mc.hypixel.net",
+    "avatar": "https://pbs.twimg.com/profile_images/1346968969849171970/DdNypQdN_400x400.png",
+    "rconHost": "127.0.0.1",
+    "rconPort": 25576,
+    "rconPassword": "пароль2"
+  },
+  {
+    "id": "2",
+    "name": "Тестовый сервер",
+    "ip": "org.akumamc.net",
+    "avatar": "https://pbs.twimg.com/profile_images/1346968969849171970/DdNypQdN_400x400.png",
+    "rconHost": "127.0.0.1",
+    "rconPort": 25576,
+    "rconPassword": "пароль2"
+  },
+  {
+    "id": "3",
+    "name": "MLegacy",
+    "ip": "play.MLegacy.net",
+    "rconHost": "123",
+    "rconPort": "123",
+    "rconPassword": "123",
+    "avatar": "https://pbs.twimg.com/profile_images/1790446937700749312/K5sOIZK5_400x400.jpg"
+  },
+  {
+    "id": "4",
+    "name": "Основной сервер3",
+    "ip": "play.MLegacy.net",
+    "avatar": "https://pbs.twimg.com/profile_images/1790446937700749312/K5sOIZK5_400x400.jpg",
+    "rconHost": "127.0.0.2",
+    "rconPort": "111",
+    "rconPassword": "112"
+  }
+]

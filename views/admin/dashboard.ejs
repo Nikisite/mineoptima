@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Админка</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f7f9fc;
+      color: #333;
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 0 20px 50px;
+    }
+
+    header {
+      background-color: #2196f3;
+      padding: 20px 30px;
+      border-radius: 8px;
+      color: #fff;
+      box-shadow: 0 4px 8px rgba(17, 82, 136, 0.3);
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-weight: 700;
+      font-size: 2em;
+      user-select: none;
+    }
+
+    nav {
+      margin-top: 15px;
+    }
+
+    nav a {
+      color: #e3f2fd;
+      text-decoration: none;
+      margin: 0 18px;
+      font-weight: 600;
+      font-size: 1.1em;
+      padding: 6px 10px;
+      border-radius: 4px;
+      transition: background-color 0.25s ease, color 0.25s ease;
+      display: inline-block;
+    }
+
+    nav a:hover,
+    nav a:focus {
+      background-color: #1976d2;
+      color: #fff;
+      outline: none;
+    }
+
+    nav a.logout {
+      color: #ff7961;
+      font-weight: 700;
+      margin-left: 30px;
+    }
+
+    nav a.logout:hover,
+    nav a.logout:focus {
+      background-color: #f44336;
+      color: #fff;
+    }
+
+
+    h1,
+    h2,
+    h3 {
+      color: #444;
+    }
+
+    form {
+      margin-bottom: 10px;
+    }
+
+    input,
+    select,
+    button,
+    textarea {
+      margin: 5px 0;
+      padding: 5px;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    #donate-section {
+      max-width: 600px;
+      margin: 0 auto 40px;
+      text-align: center;
+    }
+
+    #donate-section ul li,
+    #servers-section ul li {
+      background: #fff;
+      padding: 10px;
+      margin: 5px 0;
+      border: 1px solid #ccc;
+
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .donate-text,
+    .server-text {
+      text-align: left;
+      flex-grow: 1;
+      margin-right: 10px;
+    }
+
+    .donate-text b,
+    .server-text b {
+      display: block;
+      font-size: 1.1em;
+      margin-bottom: 4px;
+    }
+
+    .donate-text .description {
+      font-size: 0.9em;
+      color: #666;
+      margin-top: 0;
+    }
+
+    button.add {
+      background: #4caf50;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+
+    button.delete {
+      background: #f44336;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+
+    button.edit {
+      background: #2196f3;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+
+    .edit-form {
+      margin-top: 10px;
+      background: #f0f0f0;
+      padding: 10px;
+      border: 1px dashed #aaa;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header
+    style="background:#2c3e50; padding:15px 20px; color:white; text-align:center; margin-bottom:30px; border-radius:8px;">
+    <h1 style="margin:0; font-weight:700; color:white; font-size:1.8em;">👑 Админка</h1>
+    <nav style="margin-top:15px;">
+      <a href="/" style="color:white; text-decoration:none; margin:0 15px; font-weight:600; font-size:1.1em;">
+        Главная
+      </a>
+      <a href="/admin/purchases"
+        style="color:white; text-decoration:none; margin:0 15px; font-weight:600; font-size:1.1em;">
+        🛒 Покупки
+      </a>
+      <a href="#servers-section"
+        style="color:white; text-decoration:none; margin:0 15px; font-weight:600; font-size:1.1em;">
+        🌐 Серверы
+      </a>
+      <a href="#donate-section-title"
+        style="color:white; text-decoration:none; margin:0 15px; font-weight:600; font-size:1.1em;">
+        💎 Донаты
+      </a>
+      <a href="#background-section"
+        style="color:white; text-decoration:none; margin:0 15px; font-weight:600; font-size:1.1em;">
+        🖼 Фон
+      </a>
+      <a href="/admin/edit-rules"
+        style="color:white; text-decoration:none; margin:0 15px; font-weight:600; font-size:1.1em;">
+        📜 Правила
+      </a>
+      <a href="/admin/logout" style="color:#f44336; font-weight:700; margin-left:25px; text-decoration:none;">
+        🚪 Выйти
+      </a>
+    </nav>
+  </header>
+
+  <!-- Серверы -->
+  <h2>🌐 Серверы</h2>
+  <div id="servers-section">
+    <% if (Array.isArray(servers) && servers.length> 0) { %>
+      <ul>
+        <% servers.forEach(srv=> { %>
+          <li>
+            <div class="item-header">
+              <div class="server-text">
+                <b>
+                  <%= srv.name %>
+                </b>
+                <p>
+                  <%= srv.ip %>
+                </p>
+              </div>
+              <div>
+                <form method="POST" action="/admin/delete-server" style="display:inline;">
+                  <input type="hidden" name="id" value="<%= srv.id %>" />
+                  <button type="submit" class="delete">❌ Удалить</button>
+                </form>
+                <button class="edit" onclick="toggleEdit('server-<%= srv.id %>')">✏️ Редактировать</button>
+              </div>
+            </div>
+            <div id="server-<%= srv.id %>" class="edit-form" style="display:none;">
+              <form method="POST" action="/admin/edit-server">
+                <input type="hidden" name="id" value="<%= srv.id %>" />
+                <input name="name" value="<%= srv.name %>" placeholder="Имя сервера" required /><br />
+                <input name="ip" value="<%= srv.ip %>" placeholder="IP сервера" required /><br />
+                <input name="avatar" value="<%= srv.avatar %>" required /><br />
+                <input name="rconHost" value="<%= srv.rconHost %>" placeholder="RCON Host" required /><br />
+                <input name="rconPort" value="<%= srv.rconPort %>" type="number" placeholder="RCON Port"
+                  required /><br />
+                <input name="rconPassword" value="<%= srv.rconPassword %>" placeholder="RCON Пароль" required /><br />
+                <button class="add" type="submit">💾 Сохранить</button>
+              </form>
+            </div>
+          </li>
+          <% }) %>
+      </ul>
+      <% } else { %>
+        <p>Нет серверов</p>
+        <% } %>
+
+          <h3>➕ Добавить сервер</h3>
+          <form method="POST" action="/admin/add-server">
+            <input name="id" placeholder="ID сервера" required /><br />
+            <input name="name" placeholder="Имя сервера" required /><br />
+            <input name="ip" placeholder="IP сервера" required /><br />
+            <input name="avatar" placeholder="URL изображения сервера" required /><br />
+            <input name="rconHost" placeholder="RCON Host" required /><br />
+            <input name="rconPort" placeholder="RCON Port" type="number" required /><br />
+            <input name="rconPassword" placeholder="RCON Пароль" required /><br />
+            <button class="add" type="submit">Добавить</button>
+          </form>
+  </div>
+
+  <hr />
+
+  <!-- Донаты -->
+  <h2 id="donate-section-title">💎 Донаты</h2>
+  <div id="donate-section">
+    <% if (Object.keys(donateOptions).length> 0) { %>
+      <% Object.keys(donateOptions).forEach(serverName=> { %>
+        <h3>🌐 <%= serverName %>
+        </h3>
+        <% if (donateOptions[serverName].length> 0) { %>
+          <ul>
+            <% donateOptions[serverName].forEach(d=> { %>
+              <li>
+                <div class="item-header">
+                  <div class="donate-text">
+                    <b>
+                      <%= d.name %>
+                    </b> (<%= d.price %> руб.)
+                      <p class="description">
+                        <% if (d.desc) { %>
+                          <%- d.desc.replace(/\//g, '<br>/' ) %>
+                            <% } else { %>
+                              -
+                              <% } %>
+                      </p>
+                  </div>
+                  <div>
+                    <form method="POST" action="/admin/delete-donate" style="display:inline;">
+                      <input type="hidden" name="server" value="<%= serverName %>" />
+                      <input type="hidden" name="id" value="<%= d.id %>" />
+                      <button type="submit" class="delete">❌ Удалить</button>
+                    </form>
+                    <button class="edit" onclick="toggleEdit('donate-<%= d.id %>')">✏️ Редактировать</button>
+                  </div>
+                </div>
+                <div id="donate-<%= d.id %>" class="edit-form" style="display:none;">
+                  <form method="POST" action="/admin/edit-donate">
+                    <input type="hidden" name="server" value="<%= serverName %>" />
+                    <input type="hidden" name="id" value="<%= d.id %>" />
+                    <input name="name" value="<%= d.name %>" placeholder="Название доната" required /><br />
+                    <input name="price" value="<%= d.price %>" type="number" placeholder="Цена" required /><br />
+                    <textarea name="description" rows="5" cols="17"
+                      placeholder="Описание"><%= d.desc %></textarea><br />
+                    <input name="rconCommand" value="<%= d.rconCommand %>" placeholder="RCON команда" required /><br />
+                    <button class="add" type="submit">💾 Сохранить</button>
+                  </form>
+                </div>
+              </li>
+              <% }) %>
+          </ul>
+          <% } else { %>
+            <p>Нет донатов для этого сервера</p>
+            <% } %>
+              <% }) %>
+                <% } else { %>
+                  <p>Нет донатов</p>
+                  <% } %>
+
+                    <h3>➕ Добавить донат</h3>
+                    <form method="POST" action="/admin/add-donate">
+                      <select name="server" required>
+                        <% servers.forEach(srv=> { %>
+                          <option value="<%= srv.name %>">
+                            <%= srv.name %>
+                          </option>
+                          <% }) %>
+                      </select><br />
+                      <input name="id" placeholder="ID доната" required /><br />
+                      <input name="name" placeholder="Название доната" required /><br />
+                      <input name="price" placeholder="Цена" type="number" required /><br />
+                      <textarea name="description" rows="5" cols="17" placeholder="Описание доната"></textarea><br />
+                      <input name="rconCommand" placeholder="RCON команда (use {player})" required /><br />
+                      <button class="add" type="submit">Добавить</button>
+                    </form>
+  </div>
+
+  <hr />
+
+  <h2 id="background-section">🖼 Фон</h2>
+  <% if (background && background.image) { %>
+    <p>Текущий фон:</p>
+    <img src="<%= background.image %>" alt="Фон" style="max-width:300px;" /><br />
+    <% } else { %>
+      <p>Фон не установлен</p>
+      <% } %>
+        <form method="POST" action="/admin/set-background">
+          <input name="image" value="<%= background.image || '' %>" placeholder="URL изображения" required /><br />
+          <button class="add" type="submit">Сохранить фон</button>
+        </form>
+
+        <hr />
+
+        <h2>📜 Управление правилами</h2>
+        <a href="/admin/edit-rules" style="text-decoration: none;" class="add">✏️ Редактировать правила</a>
+
+        <hr />
+
+        <script>
+          function toggleEdit(id) {
+            const el = document.getElementById(id);
+            if (el.style.display === "none" || el.style.display === "") {
+              el.style.display = "block";
+            } else {
+              el.style.display = "none";
+            }
+          }
+        </script>
+
+        <p><a style="text-decoration:none;" href="/admin/logout">🚪 Выйти</a></p>
+</body>
+
+</html>

@@ -1,0 +1,73 @@
+{
+  "Основной сервер": [
+    {
+      "id": "1",
+      "name": "Вип",
+      "price": 99,
+      "desc": "/kit legend - Набор Каждые 14 дней) /хри - Полет за плату опытом /hea- Вылечить себя /repa - Починить вещь в руке /tenna Изменить название предмета /iternion Изменить описание предмета F/day/nish - Изменить время в мире",
+      "rconCommand": "lp user {player} parent add vip"
+    },
+    {
+      "id": "2",
+      "name": "Премиум",
+      "price": 199,
+      "desc": "/kit legend- Набор Каждые 14 дней) /хри - Полет за плату опытом /hea- Вылечить себя /repa - Починить вещь в руке /tenna Изменить название предмета /iternion Изменить описание предмета F/day/nish - Изменить время в мире",
+      "rconCommand": "lp user {player} parent add premium"
+    },
+    {
+      "id": "3",
+      "name": "Мистик",
+      "price": 499,
+      "desc": "/kit legend- Набор Каждые 14 дней) /хри - Полет за плату опытом /hea- Вылечить себя /repa - Починить вещь в руке /tenna Изменить название предмета /iternion Изменить описание предмета F/day/nish - Изменить время в мире",
+      "rconCommand": "lp user {player} parent add mystic"
+    },
+    {
+      "id": "4",
+      "name": "Легенда",
+      "price": 999,
+      "desc": "/kit legend- Набор Каждые 14 дней) /хри - Полет за плату опытом /hea- Вылечить себя /repa - Починить вещь в руке /tenna Изменить название предмета /iternion Изменить описание предмета F/day/nish - Изменить время в мире",
+      "rconCommand": "lp user {player} parent add legend"
+    },
+    {
+      "id": "5",
+      "name": "Ультимейт",
+      "price": 1499,
+      "desc": "/kit legend- Набор Каждые 14 дней) /хри - Полет за плату опытом /hea- Вылечить себя /repa - Починить вещь в руке /tenna Изменить название предмета /iternion Изменить описание предмета F/day/nish - Изменить время в мире",
+      "rconCommand": "lp user {player} parent add ultimate"
+    },
+    {
+      "id": "6",
+      "name": "Секрет",
+      "price": 1999,
+      "desc": "/kit legend- Набор Каждые 14 дней) /хри - Полет за плату опытом /hea- Вылечить себя /repa - Починить вещь в руке /tenna Изменить название предмета /iternion Изменить описание предмета F/day/nish - Изменить время в мире",
+      "rconCommand": "lp user {player} parent add secret"
+    },
+    {
+      "id": "7",
+      "name": "Донат кейс",
+      "price": 149,
+      "desc": "/kit legend - Набор Каждые 14 дней) /хри - Полет за плату опытом /hea- Вылечить себя /repa - Починить вещь в руке /tenna Изменить название предмета /iternion Изменить описание предмета F/day/nish - Изменить время в мире",
+      "rconCommand": "give {player} donateKey"
+    },
+    {
+      "id": "8",
+      "name": "Разбан",
+      "price": 499,
+      "desc": "Разбан на данном сервере.",
+      "rconCommand": "pardon {player}"
+    }
+  ],
+  "Тестовый сервер": [
+    {
+      "name": "Мистик",
+      "price": 200,
+      "desc": "Особые команды и киты"
+    },
+    {
+      "name": "Легенда",
+      "price": 400,
+      "desc": "Максимальные права"
+    }
+  ],
+  "MLegacy": []
+}

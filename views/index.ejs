@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>
+    <%= title %>
+  </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+
+<body style="background-image: url('<%= bg.image %>'); background-size: cover; background-repeat: no-repeat;">
+  <!-- Navbar -->
+  <nav class="navbar navbar-dark py-3 m-2" style="background: transparent; position: relative; z-index: 1000;">
+    <div class="container position-relative">
+      <a class="navbar-brand mx-auto d-lg-none" href="#">
+        <b>MineOptima</b>
+      </a>
+
+      <button class="btn btn-outline-light d-lg-none position-absolute start-0" type="button" data-bs-toggle="offcanvas"
+        data-bs-target="#mobileMenu" aria-controls="mobileMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div
+        class="d-none d-lg-flex flex-column align-items-center position-absolute top-0 start-50 translate-middle-x w-100">
+        <div class="d-flex justify-content-center mb-3">
+          <a href="/" class="nav-link text-white mx-3">Главная</a>
+          <a href="#" class="nav-link text-white mx-3" data-bs-toggle="modal" data-bs-target="#rulesModal">Правила</a>
+          <a href="#" class="nav-link text-white mx-3" data-bs-toggle="modal" data-bs-target="#agreementModal">
+            Пользовательское соглашение
+          </a>
+        </div>
+        <a class="navbar-brand mt-2" href="#">
+          <b>MineOptima</b>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+
+  <!-- Мобильный offcanvas -->
+  <div class="offcanvas offcanvas-start text-bg-dark" tabindex="-1" id="mobileMenu" aria-labelledby="mobileMenuLabel"
+    style="backdrop-filter: blur(10px); background: rgba(0,0,0,0.6);">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title mx-auto" id="mobileMenuLabel">
+        <a class="navbar-brand" href="#"><b>MineOptima</b></a>
+      </h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Закрыть"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column justify-content-center align-items-center gap-4"
+      style="margin-top: -45%;">
+      <a href="/" class="nav-link text-light fs-4">Главная</a>
+      <hr style="width: 20%; border-top: 1px solid rgba(255, 255, 255, 0.3);">
+      <a href="#" class="nav-link text-white fs-4" data-bs-toggle="modal" data-bs-target="#rulesModal">Правила</a>
+      <hr style="width: 20%; border-top: 1px solid rgba(255, 255, 255, 0.3);">
+      <a href="#" class="nav-link text-light fs-4" data-bs-toggle="modal" data-bs-target="#agreementModal">
+        Пользовательское соглашение
+      </a>
+    </div>
+  </div>
+
+
+
+  <!-- Main Content -->
+  <div class="main-container d-flex flex-wrap gap-4">
+    <div class="card p-5 text-white form-donate flex-fill">
+      <div class="text-center">
+        <h2 class="mb-3 title-brand"><b>MineOptima</b></h2>
+        <p class="fw-bold">СКИДКИ до -75%</p>
+      </div>
+      <form id="donateForm">
+        <!-- Никнейм -->
+        <div class="mb-5">
+          <input type="text" class="form-control" id="username" name="username" placeholder="Никнейм" required />
+        </div>
+
+        <!-- Список серверов -->
+        <div class="mb-5">
+          <select class="form-select" id="serverList" name="server" required>
+            <option selected disabled>Загрузка серверов...</option>
+          </select>
+        </div>
+
+        <!-- Список товаров -->
+        <div class="mb-5">
+          <select class="form-select" id="donateList" name="selid" disabled required>
+            <option selected disabled>Сначала выберите сервер...</option>
+          </select>
+        </div>
+
+        <div class="text-center">
+          <button type="button" id="payBtn" class="btn btn-danger w-100" disabled data-bs-toggle="modal"
+            data-bs-target="#orderModal">Перейти к оплате</button>
+        </div>
+      </form>
+      <p class="text-center mt-3 mb-0" style="font-size: 0.9rem;">Все привилегии выдаются навсегда</p>
+    </div>
+
+    <!-- Правая колонка -->
+    <div class="card p-5 text-white block3D flex-fill">
+      <h1 class="mb-4">Мониторинг серверов</h1>
+
+      <div class="total-online mb-3">Общий онлайн: <span id="totalOnline">0</span> игроков</div>
+
+      <div id="serversContainer">
+        <p id="loadingIndicator" class="text-center" style="color:#59d09b; font-weight:700; font-size:1.1rem;">
+          Загрузка серверов...
+        </p>
+      </div>
+
+      <div class="buttons mt-4">
+        <button onclick="location.href = ''" class="btn btn-primary w-100">Наш VK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-white text-center py-3 bg-transparent mx-auto">
+    <p class="mb-0">&copy; <b>Mine</b><b>Optima</b></p>
+  </footer>
+
+  <!-- Modal -->
+  <div class=" modal fade" id="orderModal" tabindex="-1" aria-labelledby="orderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="orderModalLabel">Подтверждение заказа</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+        <div class="modal-body">
+          <p><b class="text-warning">Никнейм</b>: <span id="modalNick"></span></p>
+          <p><b class="text-warning">Сервер</b>: <span id="modalServer"></span></p>
+          <p><b class="text-warning">Товар</b>: <span id="modalDonate"></span></p>
+          <p><b class="text-warning">Описание</b>: <span id="modalDesc"></span></p>
+          <p><b class="text-warning">Цена</b>: <span id="modalPrice"></span> ₽</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-success" id="confirmPay">Оплатить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Пользовательское соглашение -->
+  <div class="modal fade" id="agreementModal" tabindex="-1" aria-labelledby="agreementModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="agreementModalLabel">Пользовательское соглашение</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+        <div class="modal-body">
+          <p><strong class="text-info">Играя на нашем сервере MineOptima, вы автоматически соглашаетесь с этими
+              правилами!</strong></p>
+          <ol>
+            <li><strong class="text-warning">Ответственность игрока</strong>:
+              <ul>
+                <li>Незнание правил не освобождает от ответственности. Начиная играть, вы подтверждаете, что
+                  ознакомились и согласны с правилами сервера и группы ВК.</li>
+                <li>Ответственность за аккаунт несет только его владелец, независимо от того, кто совершал действия
+                  под
+                  этим аккаунтом.</li>
+                <li>Если вы забыли пароль или ваш аккаунт взломали – это ваша ответственность. Восстановление аккаунта
+                  может быть платным.</li>
+                <li>Если вы не заходите на сервер больше 4 месяцев, ваши донат-услуги и пароль могут быть удалены.
+                </li>
+              </ul>
+            </li>
+            <li><strong class="text-warning">Донат и привилегии</strong>:
+              <ul>
+                <li>Донат - это ваш добровольный вклад в развитие проекта. Покупка привилегий не является обязательным
+                  условием для игры.</li>
+                <li>Все покупки привилегий совершаются исключительно на сайте: <a href="https://mineoptima.ru"
+                    target="_blank">https://mineoptima.ru</a></li>
+                <li>Купленные привилегии не подлежат возврату или обмену.</li>
+                <li>После вайпа купленные привилегии сохраняются. Обязательно сохраняйте чек о покупке.</li>
+                <li>Если возникли проблемы после оплаты, обратитесь в сообщения группы в течение 24 часов.</li>
+              </ul>
+            </li>
+            <li><strong class="text-warning">Ограничение ответственности администрации</strong>:
+              <ul>
+                <li>В случае вайпа, бага, лага или других проблем администрация имеет право не возвращать купленные
+                  вещи, деньги и не восстанавливать постройки.</li>
+                <li>Администрация может забрать привилегию без возврата средств за нарушение правил сервера.</li>
+                <li>При покупке привилегии некоторые функции могут быть отключены по решению администрации.</li>
+              </ul>
+            </li>
+            <li><strong class="text-warning">Изменения правил</strong>:
+              <ul>
+                <li>Администрация имеет право вносить изменения в правила сервера без уведомления. Рекомендуем
+                  регулярно
+                  перечитывать это соглашение.</li>
+              </ul>
+            </li>
+          </ol>
+          <p class="text-info">Надеемся на ваше понимание и приятную игру!</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно для Правил -->
+  <div class="modal fade" id="rulesModal" tabindex="-1" aria-labelledby="rulesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="rulesModalLabel">Правила</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+        <div class="modal-body">
+          <%- content %>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+    <script>
+      let donateOptions = {};
+      let donateDetailsById = {};
+
+      $(document).ready(function () {
+        const serverSelect = $('#serverList');
+        const donateSelect = $('#donateList');
+        const payBtn = $('#payBtn');
+
+        // Загрузка серверов
+        $.getJSON('data/servers.json', function (servers) {
+          serverSelect.empty().append('<option selected disabled>Выберите сервер</option>');
+          servers.forEach(server => {
+            serverSelect.append(`<option value="${server.id}">${server.name}</option>`);
+          });
+        }).fail(function () {
+          serverSelect.html('<option disabled>Ошибка загрузки серверов</option>');
+        });
+
+        // Загрузка донатов
+        $.getJSON('data/donateOptions.json', function (donates) {
+          donateOptions = donates;
+          donateDetailsById = {};
+          Object.values(donateOptions).forEach(group => {
+            group.forEach(item => {
+              donateDetailsById[item.id] = item;
+            });
+          });
+        }).fail(function () {
+          donateSelect.html('<option disabled>Ошибка загрузки товаров</option>');
+        });
+
+        serverSelect.on('change', function () {
+          const serverName = $('#serverList option:selected').text(); // Название сервера
+          donateSelect.empty();
+
+          if (donateOptions[serverName]) {
+            donateSelect.prop('disabled', false);
+            donateSelect.append('<option selected disabled>Выберите товар</option>');
+
+            donateOptions[serverName].forEach(item => {
+              donateSelect.append(
+                `<option value="${item.id}" data-price="${item.price}">${item.name} - ${item.price} руб.</option>`
+              );
+            });
+          } else {
+            donateSelect.prop('disabled', true);
+            donateSelect.append('<option disabled>Нет доступных товаров</option>');
+          }
+
+          checkFormReady();
+        });
+
+
+        donateSelect.on('change', checkFormReady);
+        $('#username').on('input', checkFormReady);
+
+        function checkFormReady() {
+          const isReady = $('#username').val().trim() && serverSelect.val() && donateSelect.val();
+          payBtn.prop('disabled', !isReady);
+        }
+
+        // Заполняем модалку
+        payBtn.on('click', function () {
+          const selectedId = $('#donateList').val();
+          const item = donateDetailsById[selectedId];
+
+          $('#modalNick').text($('#username').val());
+          $('#modalServer').text($('#serverList option:selected').text());
+          $('#modalDonate').text(item ? item.name : $('#donateList option:selected').text().split(' - ')[0]);
+          $('#modalDesc').html(item ? (item.desc || 'Описание отсутствует').replace(/\//g, '<br>/') : 'Описание отсутствует');
+          $('#modalPrice').text(item ? item.price : $('#donateList option:selected').data('price'));
+        });
+
+        // Подтверждение оплаты
+        $('#confirmPay').on('click', function () {
+          const username = $('#username').val().trim();
+          const serverId = $('#serverList').val();
+          const donateId = $('#donateList').val();
+          const donate = donateDetailsById[donateId];
+
+          if (!username || !serverId || !donate) {
+            alert("Заполните все поля для оплаты");
+            return;
+          }
+
+          const orderData = {
+            username,
+            item: donate.name,
+            server: serverId,
+            donateId,
+          };
+
+          // 1. Отправляем на сервер для сохранения в purchases.json
+          fetch('/admin/add-purchase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username,
+              item: donate.name,
+              server: $('#serverList option:selected').text(),
+              amount: donate.price,
+              status: 'progress'
+            })
+          });
+
+          // 2. Генерация ссылки на оплату
+          const orderId = encodeURIComponent(JSON.stringify(orderData));
+          const amount = donate.price;
+
+          fetch(`/api/generate-sign?amount=${amount}&orderId=${orderId}`)
+            .then(res => res.json())
+            .then(data => {
+              if (!data.sign) {
+                alert("Ошибка генерации подписи");
+                return;
+              }
+
+              const merchantId = data.merchantId;
+              const sign = data.sign;
+              const payUrl = `https://pay.freekassa.ru/?m=${merchantId}&oa=${amount}&o=${orderId}&s=${sign}`;
+              window.location.href = payUrl;
+            })
+            .catch(err => {
+              console.error("Ошибка генерации подписи:", err);
+              alert("Ошибка связи с сервером");
+            });
+        });
+      });
+
+      // Загрузка статуса серверов
+      $(async function () {
+        try {
+          const res = await fetch('/api/server-status');
+          const json = await res.json();
+
+          const container = $('#serversContainer');
+          container.empty();
+
+          let totalPlayers = 0;
+
+          json.servers.forEach(server => {
+            if (server.online) totalPlayers += server.players;
+
+            const serverHtml = `
+        <div class="server">
+          <img src="${server.avatar}" alt="${server.name} Icon" class="logo" />
+          <div class="info">
+            <b>${server.name} (${server.ip})</b>
+            ${server.online
+                ? `Онлайн: <span class="online-count">${server.players}</span> игроков`
+                : `<span class="offline">Сервер оффлайн</span>`
+              }
+          </div>
+        </div>
+      `;
+
+            container.append(serverHtml);
+          });
+
+          $('#totalOnline').text(totalPlayers);
+
+        } catch (error) {
+          $('#serversContainer').html('<p style="color: #f55; text-align:center;">Ошибка загрузки данных серверов</p>');
+          console.error('Ошибка загрузки /api/server-status:', error);
+        }
+      });
+
+      if (window.matchMedia("(min-width: 1025px)").matches) {
+        document.addEventListener('mousemove', function (e) {
+          const x = e.clientX / window.innerWidth;
+          const moveX = (x - 0.5) * 40;
+          document.body.style.backgroundPosition = `${50 + moveX}% center`;
+        });
+      }
+    </script>
+</body>
+
+</html>
