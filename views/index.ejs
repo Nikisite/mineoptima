@@ -325,21 +325,27 @@
             donateId,
           };
 
+          const orderId = Date.now();
+          console.log(orderId);
+
           // 1. Отправляем на сервер для сохранения в purchases.json
           fetch('/admin/add-purchase', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              id: orderId,
               username,
               item: donate.name,
               server: $('#serverList option:selected').text(),
               amount: donate.price,
               status: 'progress'
             })
-          });
+          })
+            .then(res => res.json())
+            .catch(err => console.error('Ошибка при добавлении покупки:', err));
+
 
           // 2. Генерация ссылки на оплату
-          const orderId = Date.now();
           const amount = donate.price;
 
           fetch(`/api/generate-sign?amount=${amount}&orderId=${orderId}`)
@@ -352,7 +358,7 @@
 
               const merchantId = data.merchantId;
               const sign = data.sign;
-              const payUrl = `https://pay.freekassa.ru/?m=${merchantId}&oa=${amount}&o=${orderId}&s=${sign}`;
+              const payUrl = `https://pay.freekassa.ru/?m=${merchantId}&oa=${amount}&o=${orderId}&s=${sign}&test=1`;
               window.location.href = payUrl;
             })
             .catch(err => {

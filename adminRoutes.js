@@ -283,7 +283,7 @@ function savePurchases(data) {
 }
 
 // Обработчик добавления покупки
-router.post('/add-purchase', requireAdmin, (req, res) => {
+router.post('/admin/add-purchase', requireAdmin, (req, res) => {
   const { username, item, server, amount, status } = req.body;
   const purchases = loadPurchases();
 
@@ -300,6 +300,7 @@ router.post('/add-purchase', requireAdmin, (req, res) => {
   savePurchases(purchases);
   res.json({ success: true });
 });
+
 
 // Обновление статуса
 router.post('/update-purchase-status', (req, res) => {
