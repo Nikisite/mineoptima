@@ -59,14 +59,18 @@
   ],
   "Тестовый сервер": [
     {
+      "id": "1",
       "name": "Мистик",
       "price": 200,
-      "desc": "Особые команды и киты"
+      "desc": "Особые команды и киты",
+      "rconCommand": "lp user {player} parent add mystic"
     },
     {
+      "id": "2",
       "name": "Легенда",
       "price": 400,
-      "desc": "Максимальные права"
+      "desc": "Максимальные права",
+      "rconCommand": "lp user {player} parent add legend"
     }
   ],
   "MLegacy": []

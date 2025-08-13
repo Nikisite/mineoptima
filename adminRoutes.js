@@ -283,17 +283,24 @@ function savePurchases(data) {
 }
 
 // Обработчик добавления покупки
-router.post('/admin/add-purchase', requireAdmin, (req, res) => {
-  const { username, item, server, amount, status } = req.body;
+const servers = require(path.join(__dirname, '/data/donateOptions.json'));
+
+router.post('/add-purchase', requireAdmin, (req, res) => {
+  const { username, item, server, status } = req.body;
   const purchases = loadPurchases();
+
+  if (!servers[server]) return res.status(400).json({ error: 'Сервер не найден' });
+
+  const product = servers[server].find(i => i.name === item);
+  if (!product) return res.status(400).json({ error: 'Товар не найден на этом сервере' });
 
   purchases.push({
     id: Date.now(),
     username,
     item,
     server,
-    amount,
-    status,
+    amount: product.price,
+    status: status || 'progress',
     date: new Date().toISOString()
   });
 

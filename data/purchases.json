@@ -9,27 +9,30 @@
     "date": "2025-08-13T07:18:15.682Z"
   },
   {
-    "id": 1755071165152,
+    "id": 1755079482968,
     "username": "_MrSoap_",
-    "item": "Разбан",
+    "item": "Мистик",
     "server": "Основной сервер",
     "amount": 499,
-    "status": "progress"
+    "status": "progress",
+    "date": "2025-08-13T10:04:42.968Z"
   },
   {
-    "id": 1755071219425,
+    "id": 1755080030234,
     "username": "_MrSoap_",
-    "item": "Разбан",
-    "server": "Основной сервер",
-    "amount": 499,
-    "status": "progress"
+    "item": "Легенда",
+    "server": "Тестовый сервер",
+    "amount": 400,
+    "status": "progress",
+    "date": "2025-08-13T10:13:50.234Z"
   },
   {
-    "id": 1755071224705,
+    "id": 1755080162005,
     "username": "_MrSoap_",
-    "item": "Разбан",
-    "server": "Основной сервер",
-    "amount": 499,
-    "status": "progress"
+    "item": "Мистик",
+    "server": "Тестовый сервер",
+    "amount": 200,
+    "status": "progress",
+    "date": "2025-08-13T10:16:02.005Z"
   }
 ]

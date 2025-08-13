@@ -130,7 +130,7 @@ app.post('/admin/delete-donate', requireAdmin, (req, res) => {
 
 // --- Главная страница ---
 app.get('/', (req, res) => {
-  background = loadJSON(backgroundFile);
+  let background = loadJSON(backgroundFile);
   const rulesPath = path.join(__dirname, 'content', 'rules.html');
   const rulesContent = fs.existsSync(rulesPath) 
     ? fs.readFileSync(rulesPath, 'utf8')
@@ -150,11 +150,12 @@ app.get('/api/server-status', async (req, res) => {
 
 // --- API: Генерация подписи для ссылки ---
 app.get('/api/generate-sign', (req, res) => {
-  const { amount, orderId } = req.query;
+  let { amount, orderId } = req.query;
   if (!amount || !orderId) return res.status(400).json({ error: 'Missing params' });
+  amount = parseFloat(amount).toFixed(2);
 
   const sign = crypto.createHash('md5')
-    .update(`${FREE_KASSA_MERCHANT_ID}:${amount}:${FREE_KASSA_SECRET_2}:${orderId}`)
+    .update(`${FREE_KASSA_MERCHANT_ID}:${amount}:${FREE_KASSA_SECRET}:${orderId}`)
     .digest('hex');
 
   res.json({ merchantId: FREE_KASSA_MERCHANT_ID, sign });
@@ -181,9 +182,9 @@ app.post('/api/payment-callback', async (req, res) => {
     if (!purchase) return res.status(404).send('Purchase not found');
 
     const servers = loadJSON(serversFile);
-    const srv = servers.find(s => s.id === purchase.serverId);
+    const srv = servers.find(s => s.id === purchase.server);
     const donateOptions = loadJSON(donateOptionsFile);
-    const donateInfo = (donateOptions[purchase.serverId] || []).find(d => d.id === purchase.donateId);
+    const donateInfo = (donateOptions[purchase.server] || []).find(d => d.id === purchase.item);
 
     if (!srv || !donateInfo) {
       updatePurchaseStatus(purchaseId, 'canceled');
@@ -228,19 +229,41 @@ function updatePurchaseStatus(id, status) {
   }
 }
 
+const servers = require(path.join(__dirname, '/data/donateOptions.json'));
+
 app.post('/admin/add-purchase', (req, res) => {
   const dataDir = path.join(__dirname, 'data');
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
 
   const file = path.join(dataDir, 'purchases.json');
-  if (!fs.existsSync(file)) fs.writeFileSync(file, '[]');
+  if (!fs.existsSync(file)) fs.writeFileSync(file, '{}');
 
   const purchases = JSON.parse(fs.readFileSync(file, 'utf-8'));
-  purchases.push(req.body);
-  fs.writeFileSync(file, JSON.stringify(purchases, null, 2));
+  const { username, item, server, status } = req.body;
 
-  res.json({ status: 'ok', total: purchases.length });
+  if (!servers[server]) return res.status(400).json({ error: 'Сервер не найден' });
+
+  const product = servers[server].find(i => i.name === item);
+  if (!product) return res.status(400).json({ error: 'Товар не найден на этом сервере' });
+
+  if (!purchases[server]) purchases[server] = [];
+
+  const newPurchase = {
+    id: Date.now(),
+    username,
+    item,
+    server,
+    amount: product.price,
+    status: status || 'progress',
+    date: new Date().toISOString()
+  };
+
+  purchases[server].push(newPurchase);
+  fs.writeFileSync(file, JSON.stringify(purchases, null, 2), 'utf-8');
+
+  res.json({ status: 'ok', total: purchases[server].length });
 });
+
 
 app.get('/pay-with-frikassa', (req, res) => {
   const { id } = req.query;
@@ -254,7 +277,8 @@ app.get('/pay-with-frikassa', (req, res) => {
   const donateInfo = (donateOptions[purchase.serverId] || []).find(d => d.id === purchase.donateId);
   if (!donateInfo) return res.status(400).send('Ошибка доната');
 
-  const amount = donateInfo.price.toFixed(2);
+  let amount = donateInfo.price;
+  amount = parseFloat(amount).toFixed(2);
 
   const sign = crypto.createHash('md5')
     .update(`${FREE_KASSA_MERCHANT_ID}:${amount}:${FREE_KASSA_SECRET_2}:${purchase.id}`)
