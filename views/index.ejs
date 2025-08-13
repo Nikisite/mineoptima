@@ -339,7 +339,7 @@
           });
 
           // 2. Генерация ссылки на оплату
-          const orderId = encodeURIComponent(JSON.stringify(orderData));
+          const orderId = Date.now();
           const amount = donate.price;
 
           fetch(`/api/generate-sign?amount=${amount}&orderId=${orderId}`)
