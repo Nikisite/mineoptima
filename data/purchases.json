@@ -1,38 +1,20 @@
 [
   {
-    "id": 1755069495682,
+    "id": 1755105881594,
     "username": "_MrSoap_",
-    "item": "Вип",
     "server": "Основной сервер",
+    "item": "Ви",
     "amount": 99,
     "status": "progress",
-    "date": "2025-08-13T07:18:15.682Z"
+    "date": "2025-08-13T17:24:41.594Z"
   },
   {
-    "id": 1755079482968,
+    "id": 1755106047521,
     "username": "_MrSoap_",
-    "item": "Мистик",
     "server": "Основной сервер",
-    "amount": 499,
+    "item": "Ви",
+    "amount": 99,
     "status": "progress",
-    "date": "2025-08-13T10:04:42.968Z"
-  },
-  {
-    "id": 1755080030234,
-    "username": "_MrSoap_",
-    "item": "Легенда",
-    "server": "Тестовый сервер",
-    "amount": 400,
-    "status": "progress",
-    "date": "2025-08-13T10:13:50.234Z"
-  },
-  {
-    "id": 1755080162005,
-    "username": "_MrSoap_",
-    "item": "Мистик",
-    "server": "Тестовый сервер",
-    "amount": 200,
-    "status": "progress",
-    "date": "2025-08-13T10:16:02.005Z"
+    "date": "2025-08-13T17:27:27.521Z"
   }
 ]

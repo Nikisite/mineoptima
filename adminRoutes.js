@@ -121,7 +121,21 @@ router.post('/admin/set-background', requireAdmin, (req, res) => {
 // Добавление сервера
 router.post('/admin/add-server', requireAdmin, (req, res) => {
   const servers = loadServers();
-  servers.push(req.body);
+
+  let newId;
+    newId = servers.length ? Math.max(...servers.map(s => s.id)) + 1 : 1;
+
+  const newServer = {
+    id: newId,
+    name: req.body.name,
+    ip: req.body.ip,
+    avatar: req.body.avatar || '',
+    rconHost: req.body.rconHost || '',
+    rconPort: req.body.rconPort || '',
+    rconPassword: req.body.rconPassword || ''
+  };
+
+  servers.push(newServer);
   saveServers(servers);
   res.redirect('/admin');
 });
@@ -227,40 +241,61 @@ router.post('/save-rules', requireAdmin, (req, res) => {
 // Редактирование сервера
 router.post('/edit-server', requireAdmin, (req, res) => {
   const servers = loadServers();
-  const serverIndex = servers.findIndex(srv => srv.id === req.body.id);
-  if (serverIndex !== -1) {
-    servers[serverIndex] = {
-      ...servers[serverIndex],
-      name: req.body.name,
-      ip: req.body.ip,
-      avatar: req.body.avatar,
-      rconHost: req.body.rconHost,
-      rconPort: req.body.rconPort,
-      rconPassword: req.body.rconPassword,
-    };
-    saveServers(servers);
-  }
+  const serverIndex = servers.findIndex(srv => String(srv.id) === String(req.body.id));
+  if (serverIndex === -1) return res.status(404).send('Сервер не найден');
+
+  servers[serverIndex] = {
+    ...servers[serverIndex],
+    name: req.body.name,
+    ip: req.body.ip,
+    avatar: req.body.avatar,
+    rconHost: req.body.rconHost,
+    rconPort: req.body.rconPort,
+    rconPassword: req.body.rconPassword,
+  };
+
+  saveServers(servers);
   res.redirect('/admin');
 });
 
+
 // Редактирование доната
 router.post('/edit-donate', requireAdmin, (req, res) => {
-  const donates = loadDonates();
-  const server = req.body.server;
-  if (donates[server]) {
-    const donateIndex = donates[server].findIndex(d => d.id === req.body.id);
-    if (donateIndex !== -1) {
-      donates[server][donateIndex] = {
-        ...donates[server][donateIndex],
-        name: req.body.name,
-        price: parseFloat(req.body.price),
-        desc: req.body.desc,
-        rconCommand: req.body.rconCommand,
-      };
-      saveDonates(donates);
+  try {
+    const donates = loadDonates();
+
+    const serverId = String(req.body.server ?? req.body.serverId ?? '');
+    const donateId = String(req.body.id ?? req.body.donateId ?? '');
+
+    if (!serverId || !donates[serverId]) {
+      return res.status(400).send('Сервер не найден');
     }
+
+    const idx = donates[serverId].findIndex(d => String(d.id) === donateId);
+    if (idx === -1) {
+      return res.status(404).send('Товар не найден');
+    }
+
+    const current = donates[serverId][idx];
+
+    const next = {
+      ...current,
+      ...(Object.prototype.hasOwnProperty.call(req.body, 'name') ? { name: req.body.name } : {}),
+      ...(Object.prototype.hasOwnProperty.call(req.body, 'price') && req.body.price !== ''
+          ? { price: Number(req.body.price) }
+          : {}),
+      ...(Object.prototype.hasOwnProperty.call(req.body, 'desc') ? { desc: req.body.desc } : {}),
+      ...(Object.prototype.hasOwnProperty.call(req.body, 'rconCommand') ? { rconCommand: req.body.rconCommand } : {}),
+    };
+
+    donates[serverId][idx] = next;
+    saveDonates(donates);
+
+    res.redirect('/admin');
+  } catch (e) {
+    console.error('edit-donate error:', e, req.body);
+    res.status(500).send('Ошибка сохранения доната');
   }
-  res.redirect('/admin');
 });
 
 const purchasesPath = path.join(__dirname, '/data/purchases.json');
@@ -285,19 +320,19 @@ function savePurchases(data) {
 // Обработчик добавления покупки
 const servers = require(path.join(__dirname, '/data/donateOptions.json'));
 
-router.post('/add-purchase', requireAdmin, (req, res) => {
-  const { username, item, server, status } = req.body;
+router.post('/add-purchase', (req, res) => {
+  const { username, server, itemId, status } = req.body;
   const purchases = loadPurchases();
 
   if (!servers[server]) return res.status(400).json({ error: 'Сервер не найден' });
 
-  const product = servers[server].find(i => i.name === item);
+  const product = servers[server].find(i => i.id === itemId);
   if (!product) return res.status(400).json({ error: 'Товар не найден на этом сервере' });
 
   purchases.push({
     id: Date.now(),
     username,
-    item,
+    item: product.name,
     server,
     amount: product.price,
     status: status || 'progress',

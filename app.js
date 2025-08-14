@@ -12,10 +12,10 @@ const adminRouter = require('./adminRoutes.js');
 const app = express();
 const PORT = 3001;
 
-// Настройки Free-Kassa
-const FREE_KASSA_MERCHANT_ID = 'ВАШ_MERCHANT_ID';
-const FREE_KASSA_SECRET = 'ВАШ_SECRET_KEY'; // Для коллбэков
-const FREE_KASSA_SECRET_2 = 'ВАШ_SECOND_SECRET_KEY'; // Для подписи ссылок
+
+const FREE_KASSA_MERCHANT_ID = process.env.FREE_KASSA_MERCHANT_ID;
+const FREE_KASSA_SECRET = process.env.FREE_KASSA_SECRET;
+const FREE_KASSA_SECRET_2 = process.env.FREE_KASSA_SECRET_2;
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/data', express.static(path.join(__dirname, 'data')));
@@ -68,9 +68,9 @@ app.get('/admin/logout', (req, res) => {
 });
 
 app.get('/admin', requireAdmin, (req, res) => {
-  const servers = loadJSON(serversFile);
-  const donateOptions = loadJSON(donateOptionsFile);
-  const background = loadJSON(backgroundFile);
+  const servers = loadJSON(serversFile, []);
+  const donateOptions = loadJSON(donateOptionsFile, {});
+  const background = loadJSON(backgroundFile, {});
   res.render('admin/dashboard', {
     servers,
     donateOptions,
@@ -85,7 +85,7 @@ app.post('/admin/set-background', requireAdmin, (req, res) => {
 });
 
 app.post('/admin/add-server', requireAdmin, (req, res) => {
-  const servers = loadJSON(serversFile);
+  const servers = loadJSON(serversFile, []);
   const { id, name, ip, avatar, rconHost, rconPort, rconPassword } = req.body;
   servers.push({ id, name, ip, avatar, rconHost, rconPort: parseInt(rconPort), rconPassword });
   saveJSON(serversFile, servers);
@@ -93,14 +93,14 @@ app.post('/admin/add-server', requireAdmin, (req, res) => {
 });
 
 app.post('/admin/delete-server', requireAdmin, (req, res) => {
-  let servers = loadJSON(serversFile);
+  let servers = loadJSON(serversFile, []);
   servers = servers.filter(s => s.id !== req.body.id);
   saveJSON(serversFile, servers);
   res.redirect('/admin');
 });
 
 app.post('/admin/add-donate', requireAdmin, (req, res) => {
-  const donateOptions = loadJSON(donateOptionsFile);
+  const donateOptions = loadJSON(donateOptionsFile, {});
   const { serverId, id, name, price, desc, rconCommand } = req.body;
 
   if (!donateOptions[serverId]) donateOptions[serverId] = [];
@@ -117,7 +117,7 @@ app.post('/admin/add-donate', requireAdmin, (req, res) => {
 });
 
 app.post('/admin/delete-donate', requireAdmin, (req, res) => {
-  const donateOptions = loadJSON(donateOptionsFile);
+  const donateOptions = loadJSON(donateOptionsFile, {});
   const { serverId, id } = req.body;
 
   if (donateOptions[serverId]) {
@@ -130,7 +130,7 @@ app.post('/admin/delete-donate', requireAdmin, (req, res) => {
 
 // --- Главная страница ---
 app.get('/', (req, res) => {
-  let background = loadJSON(backgroundFile);
+  let background = loadJSON(backgroundFile, {});
   const rulesPath = path.join(__dirname, 'content', 'rules.html');
   const rulesContent = fs.existsSync(rulesPath) 
     ? fs.readFileSync(rulesPath, 'utf8')
@@ -143,7 +143,7 @@ const purchasesFile = path.join(__dirname, 'data', 'purchases.json');
 
 // --- API: Статус серверов ---
 app.get('/api/server-status', async (req, res) => {
-  const servers = loadJSON(serversFile);
+  const servers = loadJSON(serversFile, []);
   const statuses = await Promise.all(servers.map(getServerStatus));
   res.json({ servers: statuses });
 });
@@ -163,15 +163,28 @@ app.get('/api/generate-sign', (req, res) => {
 
 // --- Коллбэк от Free-Kassa ---
 app.post('/api/payment-callback', async (req, res) => {
+  console.log('Callback received:', req.body);
+  if (!req.body || Object.keys(req.body).length === 0) {
+  console.error('❌ Пустое тело запроса');
+  return res.status(400).send('Empty body');
+}
+
   try {
     const { MERCHANT_ORDER_ID, AMOUNT, SIGN } = req.body;
-    const purchaseId = String(MERCHANT_ORDER_ID);
+    const purchaseId = MERCHANT_ORDER_ID; // добавили объявление
 
-    const expectedSign = crypto.createHash('md5')
-      .update(`${FREE_KASSA_MERCHANT_ID}:${parseFloat(AMOUNT).toFixed(2)}:${FREE_KASSA_SECRET}:${MERCHANT_ORDER_ID}`)
-      .digest('hex');
+    if (!MERCHANT_ORDER_ID || !AMOUNT || !SIGN) {
+      console.error('❌ Не хватает данных в теле запроса');
+      return res.status(400).send('Missing data');
+    }
 
-    if (expectedSign !== SIGN) {
+    const signString = `${FREE_KASSA_MERCHANT_ID}:${parseFloat(AMOUNT).toFixed(2)}:${FREE_KASSA_SECRET}:${MERCHANT_ORDER_ID}`;
+    const expectedSign = crypto.createHash('md5').update(signString).digest('hex');
+
+    console.log('Sign string:', signString);
+    console.log('Expected:', expectedSign, 'Received:', SIGN);
+
+    if (expectedSign.toLowerCase() !== SIGN.toLowerCase()) {
       console.error('❌ Неверная подпись');
       updatePurchaseStatus(purchaseId, 'canceled');
       return res.status(400).send('Invalid signature');
@@ -181,9 +194,9 @@ app.post('/api/payment-callback', async (req, res) => {
     const purchase = purchases.find(p => String(p.id) === purchaseId);
     if (!purchase) return res.status(404).send('Purchase not found');
 
-    const servers = loadJSON(serversFile);
+    const servers = loadJSON(serversFile, []);
     const srv = servers.find(s => s.id === purchase.server);
-    const donateOptions = loadJSON(donateOptionsFile);
+    const donateOptions = loadJSON(donateOptionsFile, {});
     const donateInfo = (donateOptions[purchase.server] || []).find(d => d.id === purchase.item);
 
     if (!srv || !donateInfo) {
@@ -202,19 +215,21 @@ app.post('/api/payment-callback', async (req, res) => {
       password: srv.rconPassword
     });
 
-    const cmd = donateInfo.rconCommand.replace('{player}', purchase.player);
+    const cmd = donateInfo.rconCommand.replace('{player}', purchase.username);
     await rcon.send(cmd);
     rcon.end();
 
     updatePurchaseStatus(purchaseId, 'success');
-    console.log(`✅ Выдан ${donateInfo.name} игроку ${purchase.player} на ${srv.name}`);
+    console.log(`✅ Выдан ${donateInfo.name} игроку ${purchase.username} на ${srv.name}`);
+
     res.send('YES');
   } catch (err) {
-    console.error(err);
+    console.error('❌ Ошибка в обработке callback:', err);
     if (req.body?.MERCHANT_ORDER_ID) updatePurchaseStatus(req.body.MERCHANT_ORDER_ID, 'canceled');
     res.status(500).send('Error');
   }
 });
+
 
 // Функция для обновления статуса
 function updatePurchaseStatus(id, status) {
@@ -229,40 +244,54 @@ function updatePurchaseStatus(id, status) {
   }
 }
 
-const servers = require(path.join(__dirname, '/data/donateOptions.json'));
+app.post('/add-purchase', (req, res) => {
+  try {
+    console.log('Body:', req.body);
 
-app.post('/admin/add-purchase', (req, res) => {
-  const dataDir = path.join(__dirname, 'data');
-  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
+    const dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
 
-  const file = path.join(dataDir, 'purchases.json');
-  if (!fs.existsSync(file)) fs.writeFileSync(file, '{}');
+    const purchasesFile = path.join(dataDir, 'purchases.json');
+    if (!fs.existsSync(purchasesFile)) fs.writeFileSync(purchasesFile, '[]');
 
-  const purchases = JSON.parse(fs.readFileSync(file, 'utf-8'));
-  const { username, item, server, status } = req.body;
+    const purchases = JSON.parse(fs.readFileSync(purchasesFile, 'utf-8'));
+    const { username, serverId, donateId, serverTitle , status } = req.body;
 
-  if (!servers[server]) return res.status(400).json({ error: 'Сервер не найден' });
+    console.log('serverId:', serverId);
+    const donateOptions = loadJSON(path.join(__dirname, '/data/donateOptions.json'), {});
 
-  const product = servers[server].find(i => i.name === item);
-  if (!product) return res.status(400).json({ error: 'Товар не найден на этом сервере' });
+    if (!donateOptions[serverId]) {
+      console.error('Сервер не найден');
+      return res.status(400).json({ error: 'Сервер не найден' });
+    }
 
-  if (!purchases[server]) purchases[server] = [];
+    const product = donateOptions[serverId].find(d => d.id === donateId);
+    if (!product) {
+      console.error('Товар не найден');
+      return res.status(400).json({ error: 'Товар не найден на этом сервере' });
+    }
 
-  const newPurchase = {
-    id: Date.now(),
-    username,
-    item,
-    server,
-    amount: product.price,
-    status: status || 'progress',
-    date: new Date().toISOString()
-  };
+    const newPurchase = {
+      id: Date.now(),
+      username,
+      server: serverTitle,
+      item: product.name,
+      amount: product.price,
+      status: status || 'progress',
+      date: new Date().toISOString()
+    };
 
-  purchases[server].push(newPurchase);
-  fs.writeFileSync(file, JSON.stringify(purchases, null, 2), 'utf-8');
+    purchases.push(newPurchase);
+    fs.writeFileSync(purchasesFile, JSON.stringify(purchases, null, 2), 'utf-8');
 
-  res.json({ status: 'ok', total: purchases[server].length });
+    res.json({ status: 'ok', total: purchases.filter(p => p.server === serverId).length });
+  } catch (err) {
+    console.error('Ошибка /add-purchase:', err);
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+  }
 });
+
+
 
 
 app.get('/pay-with-frikassa', (req, res) => {
@@ -273,8 +302,8 @@ app.get('/pay-with-frikassa', (req, res) => {
   const purchase = purchases.find(p => String(p.id) === String(id));
   if (!purchase) return res.status(404).send('Покупка не найдена');
 
-  const donateOptions = loadJSON(donateOptionsFile);
-  const donateInfo = (donateOptions[purchase.serverId] || []).find(d => d.id === purchase.donateId);
+  const donateOptions = loadJSON(donateOptionsFile, {});
+  const donateInfo = (donateOptions[purchase.server] || []).find(d => d.id === purchase.item);
   if (!donateInfo) return res.status(400).send('Ошибка доната');
 
   let amount = donateInfo.price;
@@ -290,11 +319,16 @@ app.get('/pay-with-frikassa', (req, res) => {
 });
 
 
-function loadJSON(filePath) {
+function loadJSON(filePath, defaultValue = {}) {
   if (fs.existsSync(filePath)) {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    try {
+      return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    } catch (err) {
+      console.error(`Ошибка чтения файла ${filePath}:`, err);
+      return defaultValue;
+    }
   }
-  return {};
+  return defaultValue;
 }
 
 function saveJSON(file, data) {
@@ -368,7 +402,6 @@ app.get('/payment-error', (req, res) => {
 app.get('/fk-verify', (req, res) => {
   res.render('fk-verify', { title: 'Проверка' });
 });
-
 
 // --- Запуск сервера ---
 app.listen(PORT, () => {

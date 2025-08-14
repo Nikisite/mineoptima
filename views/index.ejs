@@ -234,7 +234,6 @@
 
     <script>
       let donateOptions = {};
-      let donateDetailsById = {};
 
       $(document).ready(function () {
         const serverSelect = $('#serverList');
@@ -254,25 +253,20 @@
         // Загрузка донатов
         $.getJSON('data/donateOptions.json', function (donates) {
           donateOptions = donates;
-          donateDetailsById = {};
-          Object.values(donateOptions).forEach(group => {
-            group.forEach(item => {
-              donateDetailsById[item.id] = item;
-            });
-          });
         }).fail(function () {
           donateSelect.html('<option disabled>Ошибка загрузки товаров</option>');
         });
 
+        // При выборе сервера показываем только донаты этого сервера
         serverSelect.on('change', function () {
-          const serverName = $('#serverList option:selected').text(); // Название сервера
+          const serverId = $('#serverList').val();
           donateSelect.empty();
 
-          if (donateOptions[serverName]) {
+          if (donateOptions[serverId]) {
             donateSelect.prop('disabled', false);
             donateSelect.append('<option selected disabled>Выберите товар</option>');
 
-            donateOptions[serverName].forEach(item => {
+            donateOptions[serverId].forEach(item => {
               donateSelect.append(
                 `<option value="${item.id}" data-price="${item.price}">${item.name} - ${item.price} руб.</option>`
               );
@@ -296,69 +290,61 @@
 
         // Заполняем модалку
         payBtn.on('click', function () {
-          const selectedId = $('#donateList').val();
-          const item = donateDetailsById[selectedId];
+          const serverId = $('#serverList').val();
+          const serverTitle = $('#serverList option:selected').text();
+          const donateId = $('#donateList').val();
+          const username = $('#username').val().trim();
 
-          $('#modalNick').text($('#username').val());
-          $('#modalServer').text($('#serverList option:selected').text());
-          $('#modalDonate').text(item ? item.name : $('#donateList option:selected').text().split(' - ')[0]);
+          const item = donateOptions[serverId].find(d => d.id === donateId);
+
+          $('#modalNick').text(username);
+          $('#modalServer').text(serverTitle);
+          $('#modalDonate').text(item ? item.name : 'Товар не выбран');
           $('#modalDesc').html(item ? (item.desc || 'Описание отсутствует').replace(/\//g, '<br>/') : 'Описание отсутствует');
           $('#modalPrice').text(item ? item.price : $('#donateList option:selected').data('price'));
         });
 
         // Подтверждение оплаты
         $('#confirmPay').on('click', function () {
-          const username = $('#username').val().trim();
           const serverId = $('#serverList').val();
           const donateId = $('#donateList').val();
-          const donate = donateDetailsById[donateId];
+          const username = $('#username').val().trim();
+
+          const donate = donateOptions[serverId]?.find(d => d.id === donateId);
 
           if (!username || !serverId || !donate) {
             alert("Заполните все поля для оплаты");
             return;
           }
 
-          const orderData = {
-            username,
-            item: donate.name,
-            server: serverId,
-            donateId,
-          };
-
           const orderId = Date.now();
-          console.log(orderId);
 
-          // 1. Отправляем на сервер для сохранения в purchases.json
-          fetch('/admin/add-purchase', {
+          fetch('/add-purchase', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               id: orderId,
               username,
-              item: donate.name,
-              server: $('#serverList option:selected').text(),
+              donateId: donate.id,
+              serverId,
               amount: donate.price,
+              serverTitle: $('#serverList option:selected').text(),
               status: 'progress'
             })
           })
             .then(res => res.json())
+            .then(console.log)
             .catch(err => console.error('Ошибка при добавлении покупки:', err));
 
-
-          // 2. Генерация ссылки на оплату
-          const amount = donate.price;
-
-          fetch(`/api/generate-sign?amount=${amount}&orderId=${orderId}`)
+          // Генерация ссылки на оплату
+          fetch(`/api/generate-sign?amount=${donate.price}&orderId=${orderId}`)
             .then(res => res.json())
             .then(data => {
               if (!data.sign) {
                 alert("Ошибка генерации подписи");
                 return;
               }
-
-              const merchantId = data.merchantId;
-              const sign = data.sign;
-              const payUrl = `https://pay.freekassa.ru/?m=${merchantId}&oa=${amount.toFixed(2)}&o=${orderId}&s=${sign}&currency=RUB&lang=ru&m_process=Оплатить`;
+              const payUrl = `https://pay.freekassa.ru/?m=${data.merchantId}&oa=${donate.price.toFixed(2)}&o=${orderId}&s=${data.sign}&currency=RUB&lang=ru&m_process=Оплатить`;
               window.location.href = payUrl;
             })
             .catch(err => {
