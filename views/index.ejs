@@ -309,48 +309,44 @@
           const serverId = $('#serverList').val();
           const donateId = $('#donateList').val();
           const username = $('#username').val().trim();
-
-          const donate = donateOptions[serverId]?.find(d => d.id === donateId);
+          const donate = donateOptions[serverId]?.find(d => String(d.id) === String(donateId));
 
           if (!username || !serverId || !donate) {
             alert("Заполните все поля для оплаты");
             return;
           }
 
-          const orderId = Date.now();
-
           fetch('/add-purchase', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              id: orderId,
               username,
-              donateId: donate.id,
               serverId,
-              amount: donate.price,
+              donateId,
               serverTitle: $('#serverList option:selected').text(),
               status: 'progress'
             })
           })
-            .then(res => res.json())
-            .then(console.log)
-            .catch(err => console.error('Ошибка при добавлении покупки:', err));
-
-          // Генерация ссылки на оплату
-          fetch(`/api/generate-sign?amount=${donate.price}&orderId=${orderId}`)
-            .then(res => res.json())
-            .then(data => {
-              if (!data.sign) {
-                alert("Ошибка генерации подписи");
-                return;
+            .then(async res => {
+              const text = await res.text();
+              let data;
+              try {
+                data = JSON.parse(text);
+              } catch {
+                data = { error: text || `Сервер вернул код ${res.status}` };
               }
-              const payUrl = `https://pay.freekassa.ru/?m=${data.merchantId}&oa=${donate.price.toFixed(2)}&o=${orderId}&s=${data.sign}&currency=RUB&lang=ru&m_process=Оплатить`;
-              window.location.href = payUrl;
+
+              if (!res.ok || data.status !== 'ok') {
+                throw new Error(data?.error || `Ошибка ${res.status}`);
+              }
+
+              window.location.href = `/pay-with-frikassa?id=${encodeURIComponent(data.id)}`;
             })
             .catch(err => {
-              console.error("Ошибка генерации подписи:", err);
-              alert("Ошибка связи с сервером");
+              console.error('Ошибка при добавлении покупки:', err);
+              alert(`Не удалось создать покупку: ${err.message}`);
             });
+
         });
       });
 

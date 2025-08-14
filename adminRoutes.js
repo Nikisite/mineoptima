@@ -321,27 +321,43 @@ function savePurchases(data) {
 const servers = require(path.join(__dirname, '/data/donateOptions.json'));
 
 router.post('/add-purchase', (req, res) => {
-  const { username, server, itemId, status } = req.body;
+  const { username, serverId, donateId, serverTitle, status } = req.body;
+  
+  if (!username || !serverId || !donateId) {
+    return res.status(400).json({ error: 'Не все обязательные поля переданы' });
+  }
+
+  const donateOptions = loadDonates();
+
+  if (!donateOptions[serverId]) {
+    return res.status(400).json({ error: 'Сервер не найден' });
+  }
+
+  const product = donateOptions[serverId].find(d => String(d.id) === String(donateId));
+  if (!product) {
+    return res.status(400).json({ error: 'Товар не найден' });
+  }
+
   const purchases = loadPurchases();
 
-  if (!servers[server]) return res.status(400).json({ error: 'Сервер не найден' });
-
-  const product = servers[server].find(i => i.id === itemId);
-  if (!product) return res.status(400).json({ error: 'Товар не найден на этом сервере' });
-
-  purchases.push({
-    id: Date.now(),
+  const newPurchase = {
+    id: Date.now().toString(),
     username,
-    item: product.name,
-    server,
+    serverId,
+    serverTitle: serverTitle || '',
+    donateId,
+    itemName: product.name,
     amount: product.price,
     status: status || 'progress',
     date: new Date().toISOString()
-  });
+  };
 
+  purchases.push(newPurchase);
   savePurchases(purchases);
-  res.json({ success: true });
+
+  res.json({ success: true, id: newPurchase.id });
 });
+
 
 
 // Обновление статуса

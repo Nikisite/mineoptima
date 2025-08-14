@@ -20,10 +20,10 @@
   {
     "id": "3",
     "name": "MLegacy",
+    "avatar": "https://pbs.twimg.com/profile_images/1790446937700749312/K5sOIZK5_400x400.jpg",
     "ip": "play.MLegacy.net",
     "rconHost": "123",
     "rconPort": "123",
-    "rconPassword": "123",
-    "avatar": "https://pbs.twimg.com/profile_images/1790446937700749312/K5sOIZK5_400x400.jpg"
+    "rconPassword": "123"
   }
 ]
