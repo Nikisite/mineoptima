@@ -340,7 +340,7 @@
                 throw new Error(data?.error || `Ошибка ${res.status}`);
               }
 
-              window.location.href = `/pay-with-frikassa?id=${encodeURIComponent(data.id)}`;
+              window.location.href = `/pay-with-freekassa?id=${encodeURIComponent(data.id)}`;
             })
             .catch(err => {
               console.error('Ошибка при добавлении покупки:', err);

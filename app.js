@@ -290,7 +290,7 @@ app.post('/add-purchase', (req, res) => {
   }
 });
 
-app.get('/pay-with-frikassa', (req, res) => {
+app.get('/pay-with-freekassa', (req, res) => {
   const { id } = req.query;
   if (!id) return res.status(400).send('Нет ID покупки');
 
