@@ -72,6 +72,5 @@
       "desc": "Максимальные права",
       "rconCommand": "lp user {player} parent add legend"
     }
-  ],
-  "3": []
+  ]
 }

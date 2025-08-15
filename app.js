@@ -16,6 +16,7 @@ const PORT = 3001;
 const FREE_KASSA_MERCHANT_ID = process.env.FREE_KASSA_MERCHANT_ID;
 const FREE_KASSA_SECRET = process.env.FREE_KASSA_SECRET;
 const FREE_KASSA_SECRET_2 = process.env.FREE_KASSA_SECRET_2;
+const FREE_KASSA_API_KEY = process.env.FREE_KASSA_API_KEY;
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/data', express.static(path.join(__dirname, 'data')));
@@ -77,6 +78,14 @@ app.get('/admin', requireAdmin, (req, res) => {
     background
   });
 });
+
+function saveJSON(file, data) {
+  try {
+    fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Ошибка записи файла:', err);
+  }
+}
 
 app.post('/admin/set-background', requireAdmin, (req, res) => {
   const background = { image: req.body.image };
@@ -148,65 +157,113 @@ app.get('/api/server-status', async (req, res) => {
   res.json({ servers: statuses });
 });
 
-// --- API: Генерация подписи для ссылки ---
-app.get('/api/generate-sign', (req, res) => {
-  let { amount, orderId } = req.query;
-  if (!amount || !orderId) return res.status(400).json({ error: 'Missing params' });
+// --- API: Проверка статуса платежа ---
+app.get('/api/check-payment-status', async (req, res) => {
+  try {
+    const { orderId } = req.query;
+    if (!orderId) return res.status(400).json({ error: 'Не указан orderId' });
 
-  amount = parseFloat(amount).toFixed(2);
-  const sign = crypto.createHash('md5')
-    .update(`${FREE_KASSA_MERCHANT_ID}:${amount}:${FREE_KASSA_SECRET_2}:${orderId}`)
-    .digest('hex');
+    const apiUrl = `https://api.fk.life/v1/orders/${orderId}`;
 
-  res.json({ merchantId: FREE_KASSA_MERCHANT_ID, sign });
+    const response = await fetch(apiUrl, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${FREE_KASSA_API_KEY}`
+      }
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+    updatePurchaseStatus(orderId, 'canceled');
+      return res.status(response.status).json({ error: 'Ошибка API', details: text });
+    }
+
+    const data = await response.json();
+    res.json(data);
+
+  } catch (err) {
+    updatePurchaseStatus(orderId, 'canceled');
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+  }
 });
 
+app.get('/pay-with-freekassa', (req, res) => {
+  const { id } = req.query;
+  if (!id) return res.status(400).send('Нет ID покупки');
+
+  const purchases = loadPurchases();
+  const purchase = purchases.find(p => String(p.id) === String(id));
+  if (!purchase) return res.status(404).send('Покупка не найдена');
+
+  const donateOptions = loadJSON(donateOptionsFile, {});
+  const donateInfo = (donateOptions[purchase.server] || []).find(d => String(d.id) === String(purchase.item));
+  if (!donateInfo) return res.status(400).send('Ошибка доната');
+
+  const amount = parseFloat(donateInfo.price).toFixed(2);
+  const currency = 'RUB';
+  const signString = `${FREE_KASSA_MERCHANT_ID}:${amount}:${FREE_KASSA_SECRET}:${currency}:${purchase.id}`;
+  const sign = crypto.createHash('md5').update(signString).digest('hex');
+
+  const url = `https://pay.fk.money/?m=${FREE_KASSA_MERCHANT_ID}&oa=${amount}&currency=${currency}&o=${purchase.id}&s=${sign}&i=&lang=ru`;
+  res.redirect(url);
+})
+
 // --- Коллбэк от Free-Kassa ---
-app.post('/api/payment-callback', async (req, res) => {
-  console.log('Callback received:', req.body);
+app.post('/api/payment-callback', express.urlencoded({ extended: true }), async (req, res) => {
+  console.log('--- Free-Kassa Callback ---');
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
 
   if (!req.body || Object.keys(req.body).length === 0) {
-    console.error('❌ Пустое тело запроса');
+    console.warn('Empty body received');
     return res.status(400).send('Empty body');
   }
 
   try {
-    const { MERCHANT_ORDER_ID, AMOUNT, SIGN } = req.body;
+    const { MERCHANT_ID, MERCHANT_ORDER_ID, AMOUNT, SIGN } = req.body;
     const purchaseId = MERCHANT_ORDER_ID;
 
     if (!MERCHANT_ORDER_ID || !AMOUNT || !SIGN) {
-      console.error('❌ Не хватает данных в теле запроса');
+      console.warn('Missing data in callback');
+      if (purchaseId) updatePurchaseStatus(purchaseId, 'canceled');
+      res.send('No');
       return res.status(400).send('Missing data');
     }
 
-    const signString = `${FREE_KASSA_MERCHANT_ID}:${parseFloat(AMOUNT).toFixed(2)}:${FREE_KASSA_SECRET}:${MERCHANT_ORDER_ID}`;
+    const signString = `${MERCHANT_ID}:${AMOUNT}:${FREE_KASSA_SECRET_2}:${MERCHANT_ORDER_ID}`;
     const expectedSign = crypto.createHash('md5').update(signString).digest('hex');
 
-    console.log('Sign string:', signString);
-    console.log('Expected:', expectedSign, 'Received:', SIGN);
-
     if (expectedSign.toLowerCase() !== SIGN.toLowerCase()) {
-      console.error('❌ Неверная подпись');
+      console.warn('Invalid signature', { expectedSign, receivedSign: SIGN });
       updatePurchaseStatus(purchaseId, 'canceled');
+       res.send('No');
       return res.status(400).send('Invalid signature');
     }
 
     const purchases = loadPurchases();
-    const purchase = purchases.find(p => String(p.id) === purchaseId);
-    if (!purchase) return res.status(404).send('Purchase not found');
+    const purchase = purchases.find(p => String(p.id) === String(purchaseId));
+    if (!purchase) {
+      console.warn('Purchase not found for ID', purchaseId);
+       res.send('No');
+      return res.status(404).send('Purchase not found');
+    }
 
     const servers = loadJSON(serversFile, []);
-    const srv = servers.find(s => s.id === purchase.server);
+    const srv = servers.find(s => String(s.id) === String(purchase.server));
     const donateOptions = loadJSON(donateOptionsFile, {});
     const donateInfo = (donateOptions[purchase.server] || []).find(d => String(d.id) === String(purchase.item));
 
     if (!srv || !donateInfo) {
+      console.warn('Invalid server or donate info', { srv, donateInfo });
       updatePurchaseStatus(purchaseId, 'canceled');
+       res.send('No');
       return res.status(400).send('Invalid data');
     }
 
-    if (parseFloat(AMOUNT) < donateInfo.price) {
+    if (parseFloat(AMOUNT) < parseFloat(donateInfo.price)) {
+      console.warn('Amount less than expected', { amount: AMOUNT, expected: donateInfo.price });
       updatePurchaseStatus(purchaseId, 'canceled');
+       res.send('No');
       return res.status(400).send('Insufficient amount');
     }
 
@@ -220,12 +277,13 @@ app.post('/api/payment-callback', async (req, res) => {
     await rcon.send(cmd);
     rcon.end();
 
-    updatePurchaseStatus(purchaseId, 'success');
-    console.log(`✅ Выдан ${donateInfo.name} игроку ${purchase.username} на ${srv.name}`);
 
+    updatePurchaseStatus(purchaseId, 'success');
+    console.log('Purchase processed successfully', purchaseId);
     res.send('YES');
   } catch (err) {
-    console.error('❌ Ошибка в обработке callback:', err);
+    console.error('Error processing Free-Kassa callback:', err);
+     res.send('No');
     if (req.body?.MERCHANT_ORDER_ID) updatePurchaseStatus(req.body.MERCHANT_ORDER_ID, 'canceled');
     res.status(500).send('Error');
   }
@@ -244,6 +302,7 @@ function updatePurchaseStatus(id, status) {
     console.warn('Покупка не найдена для обновления:', id);
   }
 }
+
 app.post('/add-purchase', (req, res) => {
   try {
 
@@ -286,29 +345,9 @@ app.post('/add-purchase', (req, res) => {
     res.json({ status: 'ok', id: newPurchase.id, total: purchases.filter(p => p.server === serverId).length });
   } catch (err) {
     console.error('Ошибка /add-purchase:', err);
+     if (newPurchase?.id) updatePurchaseStatus(newPurchase.id, 'canceled');
     res.status(500).json({ error: 'Внутренняя ошибка сервера' });
   }
-});
-
-app.get('/pay-with-freekassa', (req, res) => {
-  const { id } = req.query;
-  if (!id) return res.status(400).send('Нет ID покупки');
-
-  const purchases = loadPurchases();
-  const purchase = purchases.find(p => String(p.id) === String(id));
-  if (!purchase) return res.status(404).send('Покупка не найдена');
-
-  const donateOptions = loadJSON(donateOptionsFile, {});
-  const donateInfo = (donateOptions[purchase.server] || []).find(d => String(d.id) === String(purchase.item));
-  if (!donateInfo) return res.status(400).send('Ошибка доната');
-
-  const amount = Number(donateInfo.price).toFixed(2);
-  const sign = crypto.createHash('md5')
-    .update(`${FREE_KASSA_MERCHANT_ID}:${amount}:${FREE_KASSA_SECRET_2}:${purchase.id}`)
-    .digest('hex');
-
-  const url = `https://pay.freekassa.ru/?m=${FREE_KASSA_MERCHANT_ID}&oa=${amount}&o=${purchase.id}&s=${sign}&i=0&currency=RUB&lang=ru`;
-  res.redirect(url);
 });
 
 function loadJSON(filePath, defaultValue = {}) {
@@ -321,14 +360,6 @@ function loadJSON(filePath, defaultValue = {}) {
     }
   }
   return defaultValue;
-}
-
-function saveJSON(file, data) {
-  try {
-    fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Ошибка записи файла:', err);
-  }
 }
 
 async function getServerStatus(server) {
