@@ -8,13 +8,11 @@ require('dotenv').config();
 const ADMIN_LOGIN_HASH = process.env.ADMIN_LOGIN; 
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH;
 
-// Проверка username
 async function checkAdminUsername(inputUsername) {
   if (!ADMIN_LOGIN_HASH) throw new Error('Admin username hash not set');
   return bcrypt.compare(inputUsername, ADMIN_LOGIN_HASH);
 }
 
-// Проверка пароля
 async function checkAdminPassword(inputPassword) {
   if (!ADMIN_PASSWORD_HASH) throw new Error('Admin password hash not set');
   return bcrypt.compare(inputPassword, ADMIN_PASSWORD_HASH);
@@ -46,7 +44,6 @@ function requireAdmin(req, res, next) {
   }
 }
 
-
 // Логаут
 router.get('/admin/logout', (req, res) => {
   if (req.session) {
@@ -61,40 +58,41 @@ router.get('/admin/logout', (req, res) => {
 const serversPath = path.join(__dirname, '/data/servers.json');
 const donatePath = path.join(__dirname, '/data/donateOptions.json');
 const backgroundPath = path.join(__dirname, '/data/background.json');
+const purchasesPath = path.join(__dirname, '/data/purchases.json');
 
+// ---- Утилиты ----
 function loadServers() {
   try {
     return JSON.parse(fs.readFileSync(serversPath, 'utf8'));
-  } catch (err) {
-    console.error('Ошибка чтения servers.json:', err);
+  } catch {
     return [];
   }
 }
-
 function saveServers(data) {
-  try {
-    fs.writeFileSync(serversPath, JSON.stringify(data, null, 2), 'utf8');
-  } catch (err) {
-    console.error('Ошибка записи servers.json:', err);
-  }
+  fs.writeFileSync(serversPath, JSON.stringify(data, null, 2), 'utf8');
 }
-
 function loadDonates() {
   try {
     return JSON.parse(fs.readFileSync(donatePath, 'utf8'));
-  } catch (err) {
-    console.error('Ошибка чтения donateOptions.json:', err);
+  } catch {
     return {};
   }
 }
-
 function saveDonates(data) {
+  fs.writeFileSync(donatePath, JSON.stringify(data, null, 2), 'utf8');
+}
+function loadPurchases() {
   try {
-    fs.writeFileSync(donatePath, JSON.stringify(data, null, 2), 'utf8');
-  } catch (err) {
-    console.error('Ошибка записи donateOptions.json:', err);
+    return JSON.parse(fs.readFileSync(purchasesPath, 'utf8'));
+  } catch {
+    return [];
   }
 }
+function savePurchases(data) {
+  fs.writeFileSync(purchasesPath, JSON.stringify(data, null, 2), 'utf8');
+}
+
+// ---- Роуты админки ----
 
 // Админ-панель
 router.get('/admin', requireAdmin, (req, res) => {
@@ -104,9 +102,7 @@ router.get('/admin', requireAdmin, (req, res) => {
 
   try {
     background = JSON.parse(fs.readFileSync(backgroundPath, 'utf8'));
-  } catch {
-    background = { image: '' };
-  }
+  } catch {}
 
   res.render('admin/dashboard', { servers, donateOptions, background });
 });
@@ -121,9 +117,7 @@ router.post('/admin/set-background', requireAdmin, (req, res) => {
 // Добавление сервера
 router.post('/admin/add-server', requireAdmin, (req, res) => {
   const servers = loadServers();
-
-  let newId;
-    newId = servers.length ? Math.max(...servers.map(s => s.id)) + 1 : 1;
+  const newId = servers.length ? Math.max(...servers.map(s => s.id)) + 1 : 1;
 
   const newServer = {
     id: newId,
@@ -140,74 +134,59 @@ router.post('/admin/add-server', requireAdmin, (req, res) => {
   res.redirect('/admin');
 });
 
-router.post('/admin/delete-server', requireAdmin, (req, res) => {
-  const serversPath = path.join(__dirname, '/data/servers.json');
-  const donatePath = path.join(__dirname, '/data/donateOptions.json');
+// Удаление сервера
+router.post('/delete-server', requireAdmin, (req, res) => {
+  let servers = loadServers();
+  let donateOptions = loadDonates();
+  const serverIdToDelete = String(req.body.id);
 
-  let servers = [];
-  try {
-    servers = JSON.parse(fs.readFileSync(serversPath, 'utf8'));
-  } catch (err) {
-    console.error('Ошибка чтения servers.json:', err);
-  }
+  const newServers = servers.filter(srv => String(srv.id) !== serverIdToDelete);
 
-  let donateOptions = {};
-  try {
-    donateOptions = JSON.parse(fs.readFileSync(donatePath, 'utf8'));
-  } catch (err) {
-    console.error('Ошибка чтения donateOptions.json:', err);
-  }
-
-  const serverIdToDelete = req.body.id;
-  console.log('Удаляем сервер с id:', serverIdToDelete);
-
-  servers = servers.filter(srv => srv.id !== serverIdToDelete);
-
-  if (donateOptions.hasOwnProperty(serverIdToDelete)) {
+  if (Object.prototype.hasOwnProperty.call(donateOptions, serverIdToDelete)) {
     delete donateOptions[serverIdToDelete];
-    console.log(`Донаты сервера ${serverIdToDelete} удалены.`);
-  } else {
-    console.log(`Донатов для сервера ${serverIdToDelete} не найдено.`);
   }
 
-  try {
-    fs.writeFileSync(serversPath, JSON.stringify(servers, null, 2), 'utf8');
-    fs.writeFileSync(donatePath, JSON.stringify(donateOptions, null, 2), 'utf8');
-  } catch (err) {
-    console.error('Ошибка записи данных при удалении сервера:', err);
-    return res.status(500).send('Ошибка сервера при удалении');
-  }
+  saveServers(newServers);
+  saveDonates(donateOptions);
 
   res.redirect('/admin');
 });
 
 
-// Добавление доната
 router.post('/add-donate', requireAdmin, (req, res) => {
-  const donateOptions = loadDonates();
-  const server = req.body.server;
-  if (!donateOptions[server]) {
-    donateOptions[server] = [];
-  }
+  const { serverId, name, price, desc, rconCommand } = req.body;
 
-  donateOptions[server].push({
-    id: req.body.id,
-    name: req.body.name,
-    price: parseInt(req.body.price, 10),
-    desc: req.body.desc,
-    rconCommand: req.body.rconCommand
-  });
+  let donateOptions = loadDonates();
+
+  const serverDonates = donateOptions[serverId] || [];
+
+  const nextId = serverDonates.length > 0
+    ? Math.max(...serverDonates.map(d => Number(d.id))) + 1
+    : 1;
+
+  const newDonate = {
+    id: nextId.toString(),
+    name,
+    price: Number(price),
+    desc,
+    rconCommand
+  };
+
+  if (!donateOptions[serverId]) donateOptions[serverId] = [];
+  donateOptions[serverId].push(newDonate);
 
   saveDonates(donateOptions);
+
   res.redirect('/admin');
 });
 
 // Удаление доната
 router.post('/delete-donate', requireAdmin, (req, res) => {
   const donateOptions = loadDonates();
-  const server = req.body.server;
-  if (donateOptions[server]) {
-    donateOptions[server] = donateOptions[server].filter(d => d.id !== req.body.id);
+  const serverId = String(req.body.serverId);
+
+  if (donateOptions[serverId]) {
+    donateOptions[serverId] = donateOptions[serverId].filter(d => d.id !== req.body.id);
     saveDonates(donateOptions);
   }
   res.redirect('/admin');
@@ -225,17 +204,10 @@ router.get('/edit-rules', requireAdmin, (req, res) => {
   res.render('admin/edit-rules', { rules: rulesHtml });
 });
 
-// Сохранение правил
 router.post('/save-rules', requireAdmin, (req, res) => {
   const rulesPath = path.join(__dirname, '/content/rules.html');
-  const newRules = req.body.rules || '';
-  try {
-    fs.writeFileSync(rulesPath, newRules, 'utf8');
-    res.redirect('/admin');
-  } catch (err) {
-    console.error('Ошибка сохранения правил:', err);
-    res.status(500).send('Не удалось сохранить правила');
-  }
+  fs.writeFileSync(rulesPath, req.body.rules || '', 'utf8');
+  res.redirect('/admin');
 });
 
 // Редактирование сервера
@@ -258,122 +230,88 @@ router.post('/edit-server', requireAdmin, (req, res) => {
   res.redirect('/admin');
 });
 
+// Редактирование доната (форма)
+router.get('/edit-donate/:id', requireAdmin, (req, res) => {
+  const donateOptions = loadDonates();
+  const donateId = String(req.params.id);
+  const serverId = String(req.query.serverId);
 
-// Редактирование доната
-router.post('/edit-donate', requireAdmin, (req, res) => {
-  try {
-    const donates = loadDonates();
+  if (!donateOptions[serverId]) return res.status(404).send('Server not found');
+  const donate = donateOptions[serverId].find(d => String(d.id) === donateId);
+  if (!donate) return res.status(404).send('Donate not found');
 
-    const serverId = String(req.body.server ?? req.body.serverId ?? '');
-    const donateId = String(req.body.id ?? req.body.donateId ?? '');
-
-    if (!serverId || !donates[serverId]) {
-      return res.status(400).send('Сервер не найден');
-    }
-
-    const idx = donates[serverId].findIndex(d => String(d.id) === donateId);
-    if (idx === -1) {
-      return res.status(404).send('Товар не найден');
-    }
-
-    const current = donates[serverId][idx];
-
-    const next = {
-      ...current,
-      ...(Object.prototype.hasOwnProperty.call(req.body, 'name') ? { name: req.body.name } : {}),
-      ...(Object.prototype.hasOwnProperty.call(req.body, 'price') && req.body.price !== ''
-          ? { price: Number(req.body.price) }
-          : {}),
-      ...(Object.prototype.hasOwnProperty.call(req.body, 'desc') ? { desc: req.body.desc } : {}),
-      ...(Object.prototype.hasOwnProperty.call(req.body, 'rconCommand') ? { rconCommand: req.body.rconCommand } : {}),
-    };
-
-    donates[serverId][idx] = next;
-    saveDonates(donates);
-
-    res.redirect('/admin');
-  } catch (e) {
-    console.error('edit-donate error:', e, req.body);
-    res.status(500).send('Ошибка сохранения доната');
-  }
+  res.render('admin/edit-donate', { donate, serverId });
 });
 
-const purchasesPath = path.join(__dirname, '/data/purchases.json');
+// Редактирование доната (сохранение)
+router.post('/edit-donate/:id', requireAdmin, (req, res) => {
+  const donateOptions = loadDonates();
+  const donateId = String(req.params.id);
+  const serverId = String(req.body.serverId);
 
-function loadPurchases() {
-  try {
-    return JSON.parse(fs.readFileSync(purchasesPath, 'utf8'));
-  } catch (err) {
-    console.error('Ошибка чтения purchases.json:', err);
-    return [];
-  }
-}
+  if (!donateOptions[serverId]) return res.status(404).send('Server not found');
 
-function savePurchases(data) {
-  try {
-    fs.writeFileSync(purchasesPath, JSON.stringify(data, null, 2), 'utf8');
-  } catch (err) {
-    console.error('Ошибка записи purchases.json:', err);
-  }
-}
+  const donateIndex = donateOptions[serverId].findIndex(d => String(d.id) === donateId);
+  if (donateIndex === -1) return res.status(404).send('Donate not found');
 
-// Обработчик добавления покупки
-const servers = require(path.join(__dirname, '/data/donateOptions.json'));
+  donateOptions[serverId][donateIndex] = {
+    ...donateOptions[serverId][donateIndex],
+    name: req.body.name,
+    price: parseInt(req.body.price, 10),
+    desc: req.body.desc || '',
+    rconCommand: req.body.rconCommand
+  };
+
+  saveDonates(donateOptions);
+  res.redirect('/admin');
+});
 
 router.post('/add-purchase', (req, res) => {
   const { username, serverId, donateId, serverTitle, status } = req.body;
-  
+  console.log("📩 req.body:", req.body);
+
   if (!username || !serverId || !donateId) {
     return res.status(400).json({ error: 'Не все обязательные поля переданы' });
   }
 
   const donateOptions = loadDonates();
+  console.log("📦 donateOptions keys:", Object.keys(donateOptions));
 
-  if (!donateOptions[serverId]) {
-    return res.status(400).json({ error: 'Сервер не найден' });
-  }
+  const servers = loadServers();
+  console.log("📦 servers:", servers);
 
-  const product = donateOptions[serverId].find(d => String(d.id) === String(donateId));
-  if (!product) {
-    return res.status(400).json({ error: 'Товар не найден' });
-  }
-
-  const purchases = loadPurchases();
+  const product = donateOptions[serverId]?.find(d => String(d.id) === String(donateId));
+  const server = servers.find(s => String(s.id) === String(serverId));
 
   const newPurchase = {
     id: Date.now().toString(),
     username,
     serverId,
-    serverTitle: serverTitle || '',
+    serverTitle: server ? server.name : '??',
     donateId,
-    itemName: product.name,
-    amount: product.price,
+    itemName: product ? product.name : '??',
+    amount: product ? product.price : 0,
     status: status || 'progress',
     date: new Date().toISOString()
   };
 
+  console.log("📦 Новый purchase:", newPurchase);
+
+  const purchases = loadPurchases();
   purchases.push(newPurchase);
   savePurchases(purchases);
 
   res.json({ success: true, id: newPurchase.id });
 });
 
-
-
-// Обновление статуса
 router.post('/update-purchase-status', (req, res) => {
   const { id, status } = req.body;
 
-  if (!id || !status) {
-    return res.status(400).json({ error: 'ID и новый статус обязательны' });
-  }
+  if (!id || !status) return res.status(400).json({ error: 'ID и новый статус обязательны' });
 
   const purchases = loadPurchases();
   const purchaseIndex = purchases.findIndex(p => String(p.id) === String(id));
-
-  if (purchaseIndex === -1) {
-    return res.status(404).json({ error: 'Покупка не найдена' });
-  }
+  if (purchaseIndex === -1) return res.status(404).json({ error: 'Покупка не найдена' });
 
   purchases[purchaseIndex].status = status;
   purchases[purchaseIndex].updatedAt = new Date().toISOString();
@@ -405,10 +343,9 @@ router.post('/delete-purchase', requireAdmin, (req, res) => {
 
 
 // Страница покупок
-router.get('/admin/purchases', requireAdmin, (req, res) => {
+router.get('/purchases', requireAdmin, (req, res) => {
   const purchases = loadPurchases();
   res.render('admin/purchases', { purchases });
 });
-
 
 module.exports = router;

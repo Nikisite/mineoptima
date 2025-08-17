@@ -274,12 +274,11 @@
   <h2 id="donate-section-title">💎 Донаты</h2>
   <div id="donate-section">
     <% if (Object.keys(donateOptions).length> 0) { %>
-      <% Object.keys(donateOptions).forEach(serverName=> { %>
-        <h3>🌐 <%= serverName %>
-        </h3>
-        <% if (donateOptions[serverName].length> 0) { %>
+      <% Object.keys(donateOptions).forEach(serverId=> { %>
+        <h3>🌐 <%= (servers.find(s=> String(s.id) === String(serverId))?.name || serverId) %></h3>
+        <% if (donateOptions[serverId].length> 0) { %>
           <ul>
-            <% donateOptions[serverName].forEach(d=> { %>
+            <% donateOptions[serverId].forEach(d=> { %>
               <li>
                 <div class="item-header">
                   <div class="donate-text">
@@ -296,7 +295,7 @@
                   </div>
                   <div>
                     <form method="POST" action="/admin/delete-donate" style="display:inline;">
-                      <input type="hidden" name="server" value="<%= serverName %>" />
+                      <input type="hidden" name="serverId" value="<%= serverId %>">
                       <input type="hidden" name="id" value="<%= d.id %>" />
                       <button type="submit" class="delete">❌ Удалить</button>
                     </form>
@@ -304,12 +303,12 @@
                   </div>
                 </div>
                 <div id="donate-<%= d.id %>" class="edit-form" style="display:none;">
-                  <form method="POST" action="/admin/edit-donate">
-                    <input type="hidden" name="server" value="<%= serverName %>" />
+                  <form method="POST" action="/admin/edit-donate:id">
+                    <input type="hidden" name="serverId" value="<%= serverId %>">
                     <input type="hidden" name="id" value="<%= d.id %>" />
                     <input name="name" value="<%= d.name %>" placeholder="Название доната" required /><br />
                     <input name="price" value="<%= d.price %>" type="number" placeholder="Цена" required /><br />
-                    <textarea name="desc" rows="5" cols="17" placeholder="Описание"><%= d.desc %></textarea><br />
+                    <textarea name="description" rows="5" cols="17"><%= d.desc %></textarea><br />
                     <input name="rconCommand" value="<%= d.rconCommand %>" placeholder="RCON команда" required /><br />
                     <button class="add" type="submit">💾 Сохранить</button>
                   </form>
@@ -327,20 +326,20 @@
 
                     <h3>➕ Добавить донат</h3>
                     <form method="POST" action="/admin/add-donate">
-                      <select name="server" required>
+                      <select name="serverId" required>
                         <% servers.forEach(srv=> { %>
-                          <option value="<%= srv.name %>">
+                          <option value="<%= srv.id %>">
                             <%= srv.name %>
                           </option>
                           <% }) %>
                       </select><br />
-                      <input name="id" placeholder="ID доната" required /><br />
                       <input name="name" placeholder="Название доната" required /><br />
                       <input name="price" placeholder="Цена" type="number" required /><br />
-                      <textarea name="description" rows="5" cols="17" placeholder="Описание доната"></textarea><br />
+                      <textarea name="desc" rows="5" cols="17" placeholder="Описание доната"></textarea><br />
                       <input name="rconCommand" placeholder="RCON команда (use {player})" required /><br />
                       <button class="add" type="submit">Добавить</button>
                     </form>
+
   </div>
 
   <hr />

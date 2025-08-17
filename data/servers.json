@@ -10,11 +10,11 @@
   },
   {
     "id": "2",
-    "name": "Тестовый сервер",
-    "ip": "org.akumamc.net",
+    "name": "TEST",
+    "ip": "p1.gamely.pro",
     "avatar": "https://pbs.twimg.com/profile_images/1346968969849171970/DdNypQdN_400x400.png",
-    "rconHost": "127.0.0.1",
-    "rconPort": 25576,
-    "rconPassword": "пароль2"
+    "rconHost": "0.0.0.0:25575",
+    "rconPort": "25575",
+    "rconPassword": "12345"
   }
 ]

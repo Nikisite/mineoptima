@@ -305,7 +305,6 @@ function updatePurchaseStatus(id, status) {
 
 app.post('/add-purchase', (req, res) => {
   try {
-
     const dataDir = path.join(__dirname, 'data');
     if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
 
@@ -329,9 +328,14 @@ app.post('/add-purchase', (req, res) => {
       return res.status(400).json({ error: 'Товар не найден на этом сервере' });
     }
 
+    const servers = loadJSON(path.join(__dirname, '/data/servers.json'), []);
+    const serverFind = servers.find(s => String(s.id) === String(serverId));
+
     const newPurchase = {
       id: Date.now(),
       username,
+      serverTitle: serverFind.name,
+      itemName: product.name,
       server: serverId,
       item: product.id,
       amount: product.price,
