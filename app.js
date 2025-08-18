@@ -40,7 +40,7 @@ const backgroundFile = path.join(__dirname, 'data', 'background.json');
 const ADMIN_LOGIN = process.env.ADMIN_LOGIN;
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH;
 
-app.post('/login', async (req, res) => {
+app.post('/admin/login', async (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -113,6 +113,30 @@ function saveJSON(file, data) {
     console.error('Ошибка записи файла:', err);
   }
 }
+
+const configFile = path.join(__dirname, "data", "config.json");
+
+app.get("/api/config", (req, res) => {
+  try {
+    if (!fs.existsSync(configFile)) return res.json({});
+    const data = fs.readFileSync(configFile, "utf-8");
+    res.json(JSON.parse(data));
+  } catch (err) {
+    console.error("Ошибка чтения config.json:", err);
+    res.status(500).json({ error: "Ошибка чтения конфигурации" });
+  }
+});
+
+app.post("/api/config", (req, res) => {
+  try {
+    const newConfig = req.body;
+    fs.writeFileSync(configFile, JSON.stringify(newConfig, null, 2), "utf-8");
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Ошибка записи config.json:", err);
+    res.status(500).json({ error: "Ошибка сохранения конфигурации" });
+  }
+});
 
 app.post('/admin/set-background', requireAdmin, (req, res) => {
   const background = { image: req.body.image };

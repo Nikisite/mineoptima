@@ -336,6 +336,12 @@
           <button class="add" type="submit">Сохранить фон</button>
         </form>
 
+        <div class="form-group">
+          <label>Ссылка на VK</label>
+          <input type="text" id="vkInput" placeholder="Ссылка на VK">
+        </div>
+        <button onclick="updateVk()" id="vkBtn" class="btn btn-success">Сохранить</button>
+
         <hr />
 
         <h2>📜 Управление правилами</h2>
@@ -347,6 +353,25 @@
           function toggleEdit(id) {
             const el = document.getElementById(id);
             if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+          }
+
+          function updateVk() {
+            const newVkLink = document.getElementById("vkInput").value;
+
+            fetch("/api/config", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ vkLink: newVkLink })
+            })
+              .then(res => res.json())
+              .then(data => {
+                if (data.success) {
+                  console.log('Успешное изменение ссылки вк!')
+                } else {
+                  alert("Ошибка сохранения");
+                }
+              })
+              .catch(err => console.error("Ошибка сохранения vkLink:", err));
           }
         </script>
 

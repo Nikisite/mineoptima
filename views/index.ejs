@@ -116,8 +116,9 @@
       </div>
 
       <div class="buttons mt-4">
-        <button onclick="location.href = ''" class="btn btn-primary w-100">Наш VK</button>
+        <button id="vkBtn" class="btn btn-primary w-100">Наш VK</button>
       </div>
+
     </div>
   </div>
 
@@ -234,6 +235,16 @@
 
     <script>
       let donateOptions = {};
+
+      fetch("/api/config")
+        .then(res => res.json())
+        .then(config => {
+          const vkBtn = document.getElementById("vkBtn");
+          if (vkBtn && config.vkLink) {
+            vkBtn.onclick = () => location.href = config.vkLink;
+          }
+        })
+        .catch(err => console.error("Ошибка загрузки конфига:", err));
 
       $(document).ready(function () {
         const serverSelect = $('#serverList');
