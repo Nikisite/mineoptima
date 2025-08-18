@@ -157,77 +157,96 @@ app.get('/api/server-status', async (req, res) => {
   res.json({ servers: statuses });
 });
 
-// --- API: Проверка статуса платежа ---
+// --- Проверка статуса оплаты ---
 app.get('/api/check-payment-status', async (req, res) => {
+  const { orderId } = req.query;
+  if (!orderId) return res.send('NO');
+
   try {
-    const { orderId } = req.query;
-    if (!orderId) return res.status(400).json({ error: 'Не указан orderId' });
+    const data = {
+      shopId: Number(FREE_KASSA_MERCHANT_ID),
+      nonce: Date.now(),
+      paymentId: orderId,
+    };
 
-    const apiUrl = `https://api.fk.life/v1/orders/${orderId}`;
+    const keys = Object.keys(data).sort();
+    const signString = keys.map(k => data[k]).join('|');
+    const signature = crypto.createHmac('sha256', FREE_KASSA_API_KEY)
+      .update(signString)
+      .digest('hex');
 
-    const response = await fetch(apiUrl, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${FREE_KASSA_API_KEY}`
-      }
+    data.signature = signature;
+
+    const response = await fetch('https://api.fk.life/v1/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
     });
 
-    if (!response.ok) {
-      const text = await response.text();
-    updatePurchaseStatus(orderId, 'canceled');
-      return res.status(response.status).json({ error: 'Ошибка API', details: text });
+    const json = await response.json();
+
+    if (json && Array.isArray(json.orders) && json.orders.length > 0) {
+      const order = json.orders[0];
+      let status = 'progress';
+
+      if (order.orderStatus === 1) status = 'success';
+      else if (order.orderStatus === 2) status = 'canceled';
+
+      updatePurchaseStatus(orderId, status);
+
+      return res.send(status === 'success' ? 'YES' : 'NO');
     }
 
-    const data = await response.json();
-    res.json(data);
+    updatePurchaseStatus(orderId, 'progress');
+    return res.send('NO');
 
   } catch (err) {
+    console.error('Error checking payment status:', err);
     updatePurchaseStatus(orderId, 'canceled');
-    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+    return res.send('NO');
   }
 });
 
+// --- Pay URL ---
 app.get('/pay-with-freekassa', (req, res) => {
   const { id } = req.query;
-  if (!id) return res.status(400).send('Нет ID покупки');
-
-  const purchases = loadPurchases();
-  const purchase = purchases.find(p => String(p.id) === String(id));
-  if (!purchase) return res.status(404).send('Покупка не найдена');
-
-  const donateOptions = loadJSON(donateOptionsFile, {});
-  const donateInfo = (donateOptions[purchase.server] || []).find(d => String(d.id) === String(purchase.item));
-  if (!donateInfo) return res.status(400).send('Ошибка доната');
-
-  const amount = parseFloat(donateInfo.price).toFixed(2);
-  const currency = 'RUB';
-  const signString = `${FREE_KASSA_MERCHANT_ID}:${amount}:${FREE_KASSA_SECRET}:${currency}:${purchase.id}`;
-  const sign = crypto.createHash('md5').update(signString).digest('hex');
-
-  const url = `https://pay.fk.money/?m=${FREE_KASSA_MERCHANT_ID}&oa=${amount}&currency=${currency}&o=${purchase.id}&s=${sign}&i=&lang=ru`;
-  res.redirect(url);
-})
-
-// --- Коллбэк от Free-Kassa ---
-app.post('/api/payment-callback', express.urlencoded({ extended: true }), async (req, res) => {
-  console.log('--- Free-Kassa Callback ---');
-  console.log('Headers:', req.headers);
-  console.log('Body:', req.body);
-
-  if (!req.body || Object.keys(req.body).length === 0) {
-    console.warn('Empty body received');
-    return res.status(400).send('Empty body');
-  }
+  if (!id) return res.send('NO');
 
   try {
-    const { MERCHANT_ID, MERCHANT_ORDER_ID, AMOUNT, SIGN } = req.body;
-    const purchaseId = MERCHANT_ORDER_ID;
+    const purchases = loadPurchases();
+    const purchase = purchases.find(p => String(p.id) === String(id));
+    if (!purchase) return res.status(404).send('Покупка не найдена');
 
+    const donateOptions = loadJSON(donateOptionsFile, {});
+    const donateInfo = (donateOptions[purchase.server] || []).find(d => String(d.id) === String(purchase.item));
+    if (!donateInfo) return res.status(400).send('Ошибка доната');
+
+    const amount = parseFloat(donateInfo.price).toFixed(2);
+    const currency = 'RUB';
+    const signString = `${FREE_KASSA_MERCHANT_ID}:${amount}:${FREE_KASSA_SECRET}:${currency}:${purchase.id}`;
+    const sign = crypto.createHash('md5').update(signString).digest('hex');
+
+    req.session.lastPurchaseId = purchase.id;
+
+    const url = `https://pay.fk.money/?m=${FREE_KASSA_MERCHANT_ID}&oa=${amount}&currency=${currency}&o=${purchase.id}&s=${sign}&i=&lang=ru`;
+    res.redirect(url);
+
+  } catch (err) {
+    console.error('Error preparing Free-Kassa payment:', err);
+    res.send('NO');
+  }
+});
+
+// --- Free-Kassa Callback ---
+app.post('/api/payment-callback', express.urlencoded({ extended: true }), async (req, res) => {
+  const { MERCHANT_ID, MERCHANT_ORDER_ID, AMOUNT, SIGN } = req.body;
+  const purchaseId = MERCHANT_ORDER_ID;
+
+  try {
     if (!MERCHANT_ORDER_ID || !AMOUNT || !SIGN) {
       console.warn('Missing data in callback');
       if (purchaseId) updatePurchaseStatus(purchaseId, 'canceled');
-      res.send('No');
-      return res.status(400).send('Missing data');
+      return res.send('NO');
     }
 
     const signString = `${MERCHANT_ID}:${AMOUNT}:${FREE_KASSA_SECRET_2}:${MERCHANT_ORDER_ID}`;
@@ -236,56 +255,71 @@ app.post('/api/payment-callback', express.urlencoded({ extended: true }), async 
     if (expectedSign.toLowerCase() !== SIGN.toLowerCase()) {
       console.warn('Invalid signature', { expectedSign, receivedSign: SIGN });
       updatePurchaseStatus(purchaseId, 'canceled');
-       res.send('No');
-      return res.status(400).send('Invalid signature');
+      return res.send('NO');
     }
 
     const purchases = loadPurchases();
     const purchase = purchases.find(p => String(p.id) === String(purchaseId));
     if (!purchase) {
       console.warn('Purchase not found for ID', purchaseId);
-       res.send('No');
-      return res.status(404).send('Purchase not found');
+      return res.send('NO');
     }
 
     const servers = loadJSON(serversFile, []);
     const srv = servers.find(s => String(s.id) === String(purchase.server));
+
     const donateOptions = loadJSON(donateOptionsFile, {});
     const donateInfo = (donateOptions[purchase.server] || []).find(d => String(d.id) === String(purchase.item));
 
-    if (!srv || !donateInfo) {
-      console.warn('Invalid server or donate info', { srv, donateInfo });
+    if (!donateInfo) {
+      console.warn('Invalid donate info');
       updatePurchaseStatus(purchaseId, 'canceled');
-       res.send('No');
-      return res.status(400).send('Invalid data');
+      return res.send('NO');
     }
 
     if (parseFloat(AMOUNT) < parseFloat(donateInfo.price)) {
       console.warn('Amount less than expected', { amount: AMOUNT, expected: donateInfo.price });
       updatePurchaseStatus(purchaseId, 'canceled');
-       res.send('No');
-      return res.status(400).send('Insufficient amount');
+      return res.send('NO');
     }
 
-    const rcon = await Rcon.connect({
-      host: srv.rconHost,
-      port: srv.rconPort,
-      password: srv.rconPassword
-    });
+    console.log('Valid payment received', { purchaseId, amount: AMOUNT });
 
-    const cmd = donateInfo.rconCommand.replace('{player}', purchase.username);
-    await rcon.send(cmd);
-    rcon.end();
+       const rconHost = (srv.rconHost === '0.0.0.0') ? 'localhost' : srv.rconHost;
 
+   try {
+     const rcon = await Rcon.connect({
+       host: rconHost,
+       port: srv.rconPort,
+       password: srv.rconPassword
+     });
 
-    updatePurchaseStatus(purchaseId, 'success');
-    console.log('Purchase processed successfully', purchaseId);
-    res.send('YES');
+     try {
+       const cmd = donateInfo.rconCommand.replace('{player}', purchase.username);
+       await rcon.send(cmd);
+
+       updatePurchaseStatus(purchaseId, 'success');
+       console.log('Purchase processed successfully', purchaseId);
+       res.send('YES');
+
+     } catch (cmdErr) {
+       console.error('Error sending RCON command:', cmdErr);
+       updatePurchaseStatus(purchaseId, 'canceled');
+       res.send('NO');
+     } finally {
+       rcon.end();
+     }
+
+   } catch (connErr) {
+     console.error('Error connecting to RCON:', connErr);
+     updatePurchaseStatus(purchaseId, 'canceled');
+     res.send('NO');
+   }
+
   } catch (err) {
-    console.error('Error processing Free-Kassa callback:', err);
-     res.send('No');
-    if (req.body?.MERCHANT_ORDER_ID) updatePurchaseStatus(req.body.MERCHANT_ORDER_ID, 'canceled');
-    res.status(500).send('Error');
+    console.error('Unexpected error processing callback:', err);
+    if (purchaseId) updatePurchaseStatus(purchaseId, 'canceled');
+    res.send('NO');
   }
 });
 

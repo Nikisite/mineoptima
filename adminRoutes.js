@@ -5,17 +5,13 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 require('dotenv').config();
 
-const ADMIN_LOGIN_HASH = process.env.ADMIN_LOGIN; 
-const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH;
-
 async function checkAdminUsername(inputUsername) {
-  if (!ADMIN_LOGIN_HASH) throw new Error('Admin username hash not set');
-  return bcrypt.compare(inputUsername, ADMIN_LOGIN_HASH);
+  return inputUsername === process.env.ADMIN_LOGIN;
 }
 
 async function checkAdminPassword(inputPassword) {
-  if (!ADMIN_PASSWORD_HASH) throw new Error('Admin password hash not set');
-  return bcrypt.compare(inputPassword, ADMIN_PASSWORD_HASH);
+  if (!process.env.ADMIN_PASSWORD_HASH) throw new Error('Admin password hash not set');
+  return bcrypt.compare(inputPassword, process.env.ADMIN_PASSWORD_HASH);
 }
 
 router.post('/login', async (req, res) => {

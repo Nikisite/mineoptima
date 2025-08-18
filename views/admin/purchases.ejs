@@ -16,6 +16,7 @@
 
     header {
       display: flex;
+      flex-wrap: wrap;
       background: #2c3e50;
       color: #fff;
       padding: 1rem;
@@ -23,8 +24,9 @@
       justify-content: space-between;
     }
 
-    h1 {
+    header h2 {
       margin: 0;
+      font-size: 1.1rem;
     }
 
     main {
@@ -39,6 +41,7 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       padding: 1.5rem;
       margin-bottom: 2rem;
+      overflow-x: auto;
     }
 
     form .form-group {
@@ -76,24 +79,34 @@
       width: 100%;
       border-collapse: collapse;
       margin-top: 1rem;
+      min-width: 600px;
     }
 
     th,
     td {
       padding: 0.8rem;
       border-bottom: 1px solid #ddd;
+      text-align: left;
     }
 
     th {
       background: #f0f0f0;
+      font-size: 0.9rem;
+    }
+
+    td {
+      font-size: 0.9rem;
     }
 
     .badge {
-      padding: 0.5rem 0.4rem;
+      padding: 0.4rem 0.5rem;
       border-radius: 4px;
       font-size: 0.7rem;
       color: white;
       font-weight: bold;
+      display: inline-block;
+      text-align: center;
+      min-width: 90px;
     }
 
     .badge.success {
@@ -112,10 +125,53 @@
       background: #e74c3c;
       padding: 0.4rem 0.8rem;
       border-radius: 4px;
+      font-size: 0.8rem;
     }
 
     .delete-btn:hover {
       background: #c0392b;
+    }
+
+    /* 🔹 Мобильная адаптация */
+    @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      header h2 {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+      }
+
+      main {
+        margin: 1rem;
+        padding: 0.5rem;
+      }
+
+      .card {
+        padding: 1rem;
+      }
+
+      table {
+        font-size: 0.8rem;
+      }
+
+      th,
+      td {
+        padding: 0.5rem;
+      }
+
+      .badge {
+        font-size: 0.6rem;
+        min-width: auto;
+        padding: 0.3rem 0.4rem;
+      }
+
+      .delete-btn {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.7rem;
+      }
     }
   </style>
 </head>
@@ -123,7 +179,7 @@
 <body>
   <header>
     <a style="text-decoration:none; color: #ddd;" href="/admin">
-      <h2>⬅ Вернутся к редатированию</h2>
+      <h2>⬅ Вернутся к редактированию</h2>
     </a>
     <p><a style="text-decoration:none; color: #ddd;" href="/admin/logout">🚪 Выйти</a></p>
   </header>
@@ -132,64 +188,63 @@
     <!-- Таблица -->
     <div class="card">
       <h2>Список покупок</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Ник</th>
-            <th>Товар</th>
-            <th>Сервер</th>
-            <th>Сумма</th>
-            <th>Платежная система</th>
-            <th>Статус</th>
-            <th>Дата</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <% if (purchases.length===0) { %>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
             <tr>
-              <td colspan="7" style="text-align:center;">Нет покупок</td>
+              <th>Ник</th>
+              <th>Товар</th>
+              <th>Сервер</th>
+              <th>Сумма</th>
+              <th>Платежная система</th>
+              <th>Статус</th>
+              <th>Дата</th>
+              <th></th>
             </tr>
-            <% } else { %>
-              <% purchases.forEach(p=> { %>
-                <tr>
-                  <td>
-                    <%= p.username %>
-                  </td>
-                  <td>
-                    <%= p.itemName %>
-                  </td>
-                  <td>
-                    <%= p.serverTitle %>
-                  </td>
-                  <td>
-                    <%= p.amount %> ₽
-                  </td>
-                  <td style="text-align: center;">
-                    Freekassa
-                  </td>
-                  <td>
-                    <span class="badge <%= p.status %>">
-                      <% if (p.status==='success' ) { %>✅ Успешная<% } %>
-                          <% if (p.status==='progress' ) { %>⏳ В прогрессе<% } %>
-                              <% if (p.status==='canceled' ) { %>❌ Отменена<% } %>
-                    </span>
-                  </td>
-                  <td>
-                    <%= new Date(p.date).toLocaleString() %>
-                  </td>
-                  <td>
-                    <form method="POST" action="/admin/delete-purchase" style="display:inline;">
-                      <input type="hidden" name="id" value="<%= p.id %>">
-                      <button type="submit" class="delete-btn">Удалить</button>
-                    </form>
-                  </td>
-                </tr>
-
-                <% }) %>
-                  <% } %>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            <% if (purchases.length===0) { %>
+              <tr>
+                <td colspan="8" style="text-align:center;">Нет покупок</td>
+              </tr>
+              <% } else { %>
+                <% purchases.forEach(p=> { %>
+                  <tr>
+                    <td>
+                      <%= p.username %>
+                    </td>
+                    <td>
+                      <%= p.itemName %>
+                    </td>
+                    <td>
+                      <%= p.serverTitle %>
+                    </td>
+                    <td>
+                      <%= p.amount %> ₽
+                    </td>
+                    <td style="text-align: center;">Freekassa</td>
+                    <td>
+                      <span class="badge <%= p.status %>">
+                        <% if (p.status==='success' ) { %>✅ Успешная<% } %>
+                            <% if (p.status==='progress' ) { %>⏳ В прогрессе<% } %>
+                                <% if (p.status==='canceled' ) { %>❌ Отменена<% } %>
+                      </span>
+                    </td>
+                    <td>
+                      <%= new Date(p.date).toLocaleString() %>
+                    </td>
+                    <td>
+                      <form method="POST" action="/admin/delete-purchase" style="display:inline;">
+                        <input type="hidden" name="id" value="<%= p.id %>">
+                        <button type="submit" class="delete-btn">Удалить</button>
+                      </form>
+                    </td>
+                  </tr>
+                  <% }) %>
+                    <% } %>
+          </tbody>
+        </table>
+      </div>
     </div>
   </main>
 </body>

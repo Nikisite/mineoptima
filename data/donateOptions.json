@@ -57,5 +57,13 @@
       "rconCommand": "pardon {player}"
     }
   ],
-  "2": []
+  "2": [
+    {
+      "id": "1",
+      "name": "111",
+      "price": 100,
+      "desc": "1111",
+      "rconCommand": "111"
+    }
+  ]
 }
