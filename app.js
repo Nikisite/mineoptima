@@ -40,6 +40,26 @@ const backgroundFile = path.join(__dirname, 'data', 'background.json');
 const ADMIN_LOGIN = process.env.ADMIN_LOGIN;
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH;
 
+app.post('/admin/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const valid = await checkAdminCredentials(username, password);
+
+    if (valid) {
+      req.session.isAdmin = true;
+      req.session.save(() => { 
+        res.redirect('/admin');
+      });
+    } else {
+      res.render('admin/login', { error: 'Неверный логин или пароль' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Ошибка сервера');
+  }
+});
+
+
 async function checkAdminCredentials(login, password) {
   if (login !== ADMIN_LOGIN) return false;
   const match = await bcrypt.compare(password, ADMIN_PASSWORD_HASH);

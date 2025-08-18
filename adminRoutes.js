@@ -9,22 +9,6 @@ require('dotenv').config();
 const ADMIN_USERNAME = process.env.ADMIN_LOGIN;
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH;
 
-router.post('/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-
-    if (username === ADMIN_USERNAME && await bcrypt.compare(password, ADMIN_PASSWORD_HASH)) {
-      req.session.isAdmin = true;
-      return res.redirect('/admin');
-    }
-
-    res.status(401).send('Неверный логин или пароль');
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Ошибка сервера');
-  }
-});
-
 // Middleware для проверки авторизации
 function requireAdmin(req, res, next) {
   if (req.session && req.session.isAdmin) {
