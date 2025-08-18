@@ -5,26 +5,20 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 require('dotenv').config();
 
-async function checkAdminUsername(inputUsername) {
-  return inputUsername === process.env.ADMIN_LOGIN;
-}
 
-async function checkAdminPassword(inputPassword) {
-  if (!process.env.ADMIN_PASSWORD_HASH) throw new Error('Admin password hash not set');
-  return bcrypt.compare(inputPassword, process.env.ADMIN_PASSWORD_HASH);
-}
+const ADMIN_USERNAME = process.env.ADMIN_LOGIN;
+const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH;
 
 router.post('/login', async (req, res) => {
   try {
-    const userOk = await checkAdminUsername(req.body.username);
-    const passOk = await checkAdminPassword(req.body.password);
+    const { username, password } = req.body;
 
-    if (userOk && passOk) {
+    if (username === ADMIN_USERNAME && await bcrypt.compare(password, ADMIN_PASSWORD_HASH)) {
       req.session.isAdmin = true;
-      res.redirect('/admin');
-    } else {
-      res.status(401).send('Неверный логин или пароль');
+      return res.redirect('/admin');
     }
+
+    res.status(401).send('Неверный логин или пароль');
   } catch (err) {
     console.error(err);
     res.status(500).send('Ошибка сервера');
