@@ -197,10 +197,10 @@ html, body {
 .main-container {
   position: relative;
   display: flex;
+  flex-direction: column;
   flex-wrap: wrap;
   justify-content: center; 
   top: 20%;
-  gap: 2rem;
   width: 100%;
 }
 
@@ -241,6 +241,7 @@ footer {
 
   .form-donate {
     display: flex;
+    min-width: 500px;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
@@ -469,7 +470,114 @@ footer {
   margin: 20px 0;
 }
 
+#lastPurchasesBlock {
+  position: relative;
+  margin: 1rem auto 0 auto;
+  max-width: 500px;
+  max-height: 150px;
+  width: 90%;
+  background: rgba(0,0,0,0.75);
+  border-radius: 15px;
+  padding: 16px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.5);
+  text-align: center;
+}
+
+#lastPurchasesBlock h5 {
+  font-size: 1.2rem;
+  color: #ffcc00;
+  margin-bottom: 12px;
+  text-shadow: 0 0 6px #000;
+}
+
+#lastPurchases {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+#lastPurchases .purchase-item {
+  width: 52px;
+  height: 52px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.3s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+
+#lastPurchases .purchase-item:hover {
+  transform: scale(1.1);
+  background: rgba(255,255,255,0.15);
+}
+
+#lastPurchases .purchase-item img {
+  max-width: 70%;
+  max-height: 70%;
+}
+
+#lastPurchases .tooltip {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.9);
+  color: #fff;
+  padding: 5px 8px;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  box-shadow: 0 0 6px rgba(0,0,0,0.6);
+}
+
+#lastPurchases .purchase-item:hover .tooltip {
+  opacity: 1;
+}
+
+.content-first{
+  display: flex;
+}
+
+.form-donate .form-control,
+.form-donate .form-select {
+  height: 48px;
+  font-size: 1rem;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #1c1c1c;
+  color: #fff;
+  border: none;
+  box-shadow: inset 0 0 6px rgba(255,255,255,0.1);
+}
+
+.form-donate .form-control::placeholder,
+.form-donate .form-select::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+  opacity: 1;
+}
+
+.form-donate .form-control:focus,
+.form-donate .form-select:focus {
+  outline: none;
+  background: #2b2b2b;
+  box-shadow: 0 0 8px #ffcc00;
+}
+
+
+
 @media (min-width: 1200px) {
+  footer{
+    top: 15%;
+  }
+  
   .main-container {
     align-items: center;
   }
@@ -525,6 +633,11 @@ footer {
 }
 
 @media (max-width: 768px) {
+  .content-first{
+    flex-direction: column;
+    min-width: 100%;
+    top: 0;
+  }
     .form-donate,
   .block3D {
     min-height: 0;
@@ -539,13 +652,32 @@ footer {
 
   .card, .block3D {
     width: 100%;
+    min-width: 0;
     max-width: 100%;
+  }
+
+   #lastPurchasesBlock {
+    max-width: 95%;
+    padding: 12px;
+  }
+
+  #lastPurchases .purchase-item {
+    width: 44px;
+    height: 44px;
+  }
+
+  #lastPurchasesBlock h5 {
+    font-size: 1rem;
   }
 }
 
 
 
 @media (max-width: 480px) {
+  .content-first{
+    max-width: 360px;
+  }
+
   .server-info {
     flex-direction: column;
     text-align: center;
@@ -583,10 +715,25 @@ footer {
     text-shadow: 2px 3px 0 #3c3c3c, 1px 5px 0 #000, 2px -3px 6px #f5e131, -3px 3px 10px #e7db30;
   }
 
-}
+   #lastPurchasesBlock {
+    width: 100%;
+    border-radius: 0; 
+  }
 
-  .main-container {
-  align-items: stretch;
+  #lastPurchases {
+    gap: 8px;
+  }
+
+  #lastPurchases .purchase-item {
+    width: 40px;
+    height: 40px;
+  }
+
+  #lastPurchases .tooltip {
+    font-size: 0.7rem;
+    bottom: 50px;
+  }
+
 }
 
 .form-donate h2,

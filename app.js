@@ -127,14 +127,13 @@ app.get("/api/config", (req, res) => {
   }
 });
 
-app.post("/api/config", (req, res) => {
+app.get('/last-purchases', (req, res) => {
   try {
-    const newConfig = req.body;
-    fs.writeFileSync(configFile, JSON.stringify(newConfig, null, 2), "utf-8");
-    res.json({ success: true });
+    const purchases = loadPurchases();
+    res.json(purchases);
   } catch (err) {
-    console.error("Ошибка записи config.json:", err);
-    res.status(500).json({ error: "Ошибка сохранения конфигурации" });
+    console.error('Ошибка получения последних покупок:', err);
+    res.status(500).json([]);
   }
 });
 

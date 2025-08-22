@@ -124,7 +124,7 @@ router.post('/delete-server', requireAdmin, (req, res) => {
 
 
 router.post('/add-donate', requireAdmin, (req, res) => {
-  const { serverId, name, price, desc, rconCommand } = req.body;
+  const { serverId, name, price, desc, rconCommand, itemIcon } = req.body;
 
   let donateOptions = loadDonates();
 
@@ -139,7 +139,8 @@ router.post('/add-donate', requireAdmin, (req, res) => {
     name,
     price: Number(price),
     desc,
-    rconCommand
+    rconCommand,
+    itemIcon: itemIcon || ''
   };
 
   if (!donateOptions[serverId]) donateOptions[serverId] = [];
@@ -229,7 +230,8 @@ router.post('/edit-donate/:id', requireAdmin, (req, res) => {
     name: req.body.name,
     price: parseInt(req.body.price, 10),
     desc: req.body.desc || '',
-    rconCommand: req.body.rconCommand
+    rconCommand: req.body.rconCommand,
+    itemIcon: req.body.itemIcon || ''
   };
 
   saveDonates(donateOptions);

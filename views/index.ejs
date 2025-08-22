@@ -55,7 +55,7 @@
       <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Закрыть"></button>
     </div>
     <div class="offcanvas-body d-flex flex-column justify-content-center align-items-center gap-4"
-      style="margin-top: -45%;">
+      style="text-align: center;margin-top: -45%;">
       <a href="/" class="nav-link text-light fs-4">Главная</a>
       <hr style="width: 20%; border-top: 1px solid rgba(255, 255, 255, 0.3);">
       <a href="#" class="nav-link text-white fs-4" data-bs-toggle="modal" data-bs-target="#rulesModal">Правила</a>
@@ -70,57 +70,66 @@
 
   <!-- Main Content -->
   <div class="main-container d-flex flex-wrap gap-4">
-    <div class="card p-5 text-white form-donate flex-fill">
-      <div class="text-center">
-        <h2 class="mb-3 title-brand"><b>MineOptima</b></h2>
-        <p class="fw-bold">СКИДКИ до -75%</p>
-      </div>
-      <form id="donateForm">
-        <!-- Никнейм -->
-        <div class="mb-5">
-          <input type="text" class="form-control" id="username" name="username" placeholder="Никнейм" required />
-        </div>
-
-        <!-- Список серверов -->
-        <div class="mb-5">
-          <select class="form-select" id="serverList" name="server" required>
-            <option selected disabled>Загрузка серверов...</option>
-          </select>
-        </div>
-
-        <!-- Список товаров -->
-        <div class="mb-5">
-          <select class="form-select" id="donateList" name="selid" disabled required>
-            <option selected disabled>Сначала выберите сервер...</option>
-          </select>
-        </div>
-
+    <div class="content-first d-flex flex-wrap gap-4">
+      <div class="card p-5 text-white form-donate flex-fill">
         <div class="text-center">
-          <button type="button" id="payBtn" class="btn btn-danger w-100" disabled data-bs-toggle="modal"
-            data-bs-target="#orderModal">Перейти к оплате</button>
+          <h2 class="mb-3 title-brand"><b>MineOptima</b></h2>
+          <p class="fw-bold">СКИДКИ до -75%</p>
         </div>
-      </form>
-      <p class="text-center mt-3 mb-0" style="font-size: 0.9rem;">Все привилегии выдаются навсегда</p>
+        <form id="donateForm">
+          <!-- Никнейм -->
+          <div class="mb-5">
+            <input type="text" class="form-control" id="username" name="username" placeholder="Никнейм" required />
+          </div>
+
+          <!-- Список серверов -->
+          <div class="mb-5">
+            <select class="form-select" id="serverList" name="server" required>
+              <option selected disabled>Загрузка серверов...</option>
+            </select>
+          </div>
+
+          <!-- Список товаров -->
+          <div class="mb-5">
+            <select class="form-select" id="donateList" name="selid" disabled required>
+              <option selected disabled>Сначала выберите сервер...</option>
+            </select>
+          </div>
+
+          <div class="text-center">
+            <button type="button" id="payBtn" class="btn btn-danger w-100" disabled data-bs-toggle="modal"
+              data-bs-target="#orderModal">Перейти к оплате</button>
+          </div>
+        </form>
+        <p class="text-center mt-3 mb-0" style="font-size: 0.9rem;">Все привилегии выдаются навсегда</p>
+      </div>
+
+      <!-- Правая колонка -->
+      <div class="card p-5 text-white block3D flex-fill">
+        <h1 class="mb-4">Мониторинг серверов</h1>
+
+        <div class="total-online mb-3">Общий онлайн: <span id="totalOnline">0</span> игроков</div>
+
+        <div id="serversContainer">
+          <p id="loadingIndicator" class="text-center" style="color:#59d09b; font-weight:700; font-size:1.1rem;">
+            Загрузка серверов...
+          </p>
+        </div>
+
+        <div class="buttons mt-4">
+          <button id="vkBtn" class="btn btn-primary w-100">Наш VK</button>
+        </div>
+
+      </div>
     </div>
 
-    <!-- Правая колонка -->
-    <div class="card p-5 text-white block3D flex-fill">
-      <h1 class="mb-4">Мониторинг серверов</h1>
-
-      <div class="total-online mb-3">Общий онлайн: <span id="totalOnline">0</span> игроков</div>
-
-      <div id="serversContainer">
-        <p id="loadingIndicator" class="text-center" style="color:#59d09b; font-weight:700; font-size:1.1rem;">
-          Загрузка серверов...
-        </p>
-      </div>
-
-      <div class="buttons mt-4">
-        <button id="vkBtn" class="btn btn-primary w-100">Наш VK</button>
-      </div>
-
+    <!-- Последние покупки -->
+    <div class="card p-3 text-white mt-4 w-100" id="lastPurchasesBlock">
+      <h5 class="mb-3">Последние покупки</h5>
+      <div id="lastPurchases" class="d-flex gap-2"></div>
     </div>
   </div>
+
 
   <!-- Footer -->
   <footer class="text-white text-center py-3 bg-transparent mx-auto">
@@ -360,6 +369,61 @@
 
         });
       });
+
+      async function loadLastPurchases() {
+        try {
+          const res = await fetch("/last-purchases");
+          if (!res.ok) throw new Error("Ошибка ответа сервера");
+          const purchases = await res.json();
+
+          const donateOptionsRes = await fetch("/data/donateOptions.json");
+          const donateOptions = await donateOptionsRes.json();
+
+          renderPurchases(purchases, donateOptions);
+        } catch (err) {
+          console.error("Ошибка загрузки последних покупок:", err);
+        }
+      }
+
+      function renderPurchases(purchases, donateOptions) {
+        const container = document.getElementById("lastPurchases");
+        if (!container) return;
+
+        container.innerHTML = "";
+
+        const successfulPurchases = purchases
+          .filter(p => p.status === "success")
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+          .slice(0, 5);
+
+        if (successfulPurchases.length === 0) {
+          container.innerHTML = "<p style='color:#fff;'>Пока нет завершённых покупок</p>";
+          return;
+        }
+
+        successfulPurchases.forEach(p => {
+          const serverDonates = donateOptions[p.server] || [];
+          const product = serverDonates.find(d => String(d.id) === String(p.item));
+          const icon = product?.itemIcon || "❓";
+
+          const item = document.createElement("div");
+          item.classList.add("purchase-item");
+
+          const iconEl = document.createElement("div");
+          iconEl.style.fontSize = "1.5rem";
+          iconEl.textContent = icon;
+
+          const tooltip = document.createElement("div");
+          tooltip.classList.add("tooltip");
+          tooltip.textContent = `${p.username} купил ${p.itemName} (${p.amount} ₽)`;
+
+          item.appendChild(iconEl);
+          item.appendChild(tooltip);
+          container.appendChild(item);
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", loadLastPurchases);
 
       // Загрузка статуса серверов
       $(async function () {
